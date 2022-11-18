@@ -37,7 +37,6 @@ func Listen(address string) (*Listener, error) {
 	}
 
 	key, _ := rsa.GenerateKey(rand.Reader, 1024)
-	key = nil
 
 	listener := &Listener{
 		tcpLn:  ln.(*net.TCPListener),

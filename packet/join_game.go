@@ -14,9 +14,10 @@ type JoinGame struct {
 
 	//Dimension Codec & Dimension
 
-	DimensionName       string
-	HashedLong          int64
-	MaxPlayers          int32
+	DimensionName string
+    WorldName string
+	HashedSeed    int64
+	MaxPlayers    int32
 	ViewDistance        int32
 	ReducedDebugInfo    bool
 	EnableRespawnScreen bool
@@ -44,11 +45,12 @@ func (g JoinGame) Encode(w Writer) error {
 	}
 	_ = w.Nbt(dimensions)
 	_ = w.String(g.DimensionName)
-	_ = w.Int64(g.HashedLong)
+    _ = w.String(g.WorldName)
+	_ = w.Int64(g.HashedSeed)
 	_ = w.VarInt(g.MaxPlayers)
 	_ = w.VarInt(g.ViewDistance)
-	_ = w.Bool(g.IsHardcore)
-	_ = w.Bool(g.ReducedDebugInfo)
+    _ = w.Bool(g.ReducedDebugInfo)
+    _ = w.Bool(g.EnableRespawnScreen)
 	_ = w.Bool(g.IsDebug)
 	return w.Bool(g.IsFlat)
 }

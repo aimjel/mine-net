@@ -29,7 +29,7 @@ func (l PlayerPositionLook) Encode(w Writer) error {
 	_ = w.Float64(l.Z)
 	_ = w.Float32(l.Yaw)
 	_ = w.Float32(l.Pitch)
-	return w.Int8(l.Flags)
-	//_ = w.VarInt(l.TeleportID)
-	//return w.Bool(l.DismountVehicle)
+	_ = w.Int8(l.Flags)
+	_ = w.VarInt(l.TeleportID)
+	return w.Bool(l.DismountVehicle)
 }

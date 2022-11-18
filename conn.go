@@ -76,6 +76,7 @@ func (c *Conn) WritePacket(pk packet.Packet) error {
 		return err
 	}
 
+    fmt.Printf("%v: packet %x sent\n", c.RemoteAddr(), pk.ID())
 	return c.enc.flush()
 }
 
@@ -103,7 +104,7 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 	pk := fn()
 
 	if err = pk.Decode(r); err != nil {
-		return nil, fmt.Errorf("%v decoding packet", pk.Decode(r))
+		return nil, fmt.Errorf("%v decoding packet", err)
 	}
 
 	return pk, nil
@@ -151,7 +152,6 @@ func (enc *encoder) flush() error {
 	}
 
 	_, err := enc.wr.Write(enc.buf[enc.r-n : enc.w])
-
 	enc.r, enc.w = 3, 3
 
 	return err
