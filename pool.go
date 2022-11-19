@@ -1,7 +1,7 @@
 package minecraft
 
 import (
-	"minecraft/packet"
+	"github.com/aimjel/minecraft/packet"
 )
 
 var handshakePool = map[int32]func() packet.Packet{

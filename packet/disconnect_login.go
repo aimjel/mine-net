@@ -3,7 +3,7 @@ package packet
 import (
 	"encoding/json"
 	"fmt"
-	"minecraft/chat"
+	"github.com/aimjel/minecraft/chat"
 )
 
 type DisconnectLogin struct {

@@ -2,9 +2,9 @@ package packet
 
 import (
 	"fmt"
+	"github.com/aimjel/minecraft/nbt"
 	"io"
 	"math"
-	"minecraft/nbt"
 )
 
 type Writer struct {

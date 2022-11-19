@@ -1,7 +1,7 @@
 package packet
 
 import (
-	"minecraft/player"
+	"github.com/aimjel/minecraft/player"
 )
 
 type PlayerInfo struct {

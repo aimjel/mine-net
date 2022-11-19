@@ -4,9 +4,9 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"fmt"
+	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/player"
 	"io"
-	"minecraft/packet"
-	"minecraft/player"
 	"net"
 	"sync"
 )
@@ -76,7 +76,7 @@ func (c *Conn) WritePacket(pk packet.Packet) error {
 		return err
 	}
 
-    fmt.Printf("%v: packet %x sent\n", c.RemoteAddr(), pk.ID())
+	fmt.Printf("%v: packet %x sent\n", c.RemoteAddr(), pk.ID())
 	return c.enc.flush()
 }
 

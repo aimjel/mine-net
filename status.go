@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aimjel/minecraft/chat"
 	"image/png"
-	"minecraft/chat"
 	"os"
 )
 
