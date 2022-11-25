@@ -1,5 +1,9 @@
 package packet
 
+import "errors"
+
+var NotImplemneted = errors.New("a packet field has not been implemented")
+
 type Packet interface {
 	ID() int32
 

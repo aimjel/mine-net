@@ -7,7 +7,8 @@ import (
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/player"
 	"io"
-	"net"
+    "log"
+    "net"
 	"sync"
 )
 
@@ -94,17 +95,19 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 
 	fn, ok := c.pool[id]
 	if ok == false {
-		//if id == 0 {
-		//	fmt.Println(string(p))
-		//}
-		//fmt.Printf("%v: unknown packet with id %x\n", c.RemoteAddr(), id)
+		fmt.Printf("%v: unknown packet#%x{%v}\n", c.RemoteAddr(), id, p)
 		return nil, nil
 	}
 
 	pk := fn()
 
 	if err = pk.Decode(r); err != nil {
-		return nil, fmt.Errorf("%v decoding packet", err)
+        log.Printf("%v decoding %#v", err, pk)
+        if err == packet.NotImplemneted {
+            return pk, nil
+        }
+
+        return nil, nil
 	}
 
 	return pk, nil

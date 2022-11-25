@@ -100,6 +100,18 @@ func (r *Reader) Int64(x *int64) error {
 	return nil
 }
 
+func (r *Reader) Uint64(x *uint64) error {
+    if r.isEOF(8) {
+        return io.ErrUnexpectedEOF
+    }
+
+    b := r.buf[r.at : r.at+8]
+    r.at += 8
+
+    *x = uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
+    return nil
+}
+
 func (r *Reader) Float32(x *float32) error {
 	if r.isEOF(4) {
 		return io.ErrUnexpectedEOF
@@ -195,4 +207,21 @@ func (r *Reader) UUID(x *[16]byte) error {
 
 func (r *Reader) isEOF(n int) bool {
 	return r.at+n > len(r.buf)
+}
+
+func DecodeLocation(l uint64) (x int32, y int32, z int32) {
+    x = int32(l >> 38)
+    y = int32(l & 0xfff)
+    z = int32(((l >> 12) & 0x3ffffff))
+
+    if x >= 1<<25{
+        x -= 1<<26
+    }
+    if y >=1<<11{
+        y -= 1<<12
+    }
+    if z >= 1<<25 {
+        z -= 1<<26
+    }
+    return
 }
