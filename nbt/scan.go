@@ -25,40 +25,12 @@ func (s *scanner) scan(id byte) error {
 	default:
 		return fmt.Errorf("nbt: unknown tag id at %v", s.at)
 
-	case tagByte:
-		if s.at+1 > len(s.buf) {
+	case tagByte, tagShort, tagInt, tagLong, tagFloat, tagDouble:
+		n := tagPayload(id)
+		if s.at+n > len(s.buf) {
 			return io.ErrUnexpectedEOF
 		}
-		s.at++
-
-	case tagShort:
-		if s.at+2 > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-		s.at += 2
-
-	case tagInt, tagFloat:
-		if s.at+4 > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-		s.at += 4
-
-	case tagLong, tagDouble:
-		if s.at+8 > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-		s.at += 8
-
-	case tagByteArray:
-		length, err := s.read32()
-		if err != nil {
-			return err
-		}
-
-		if s.at+length > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-		s.at += length
+		s.at += n
 
 	case tagString:
 		if s.at+2 > len(s.buf) {
@@ -80,27 +52,13 @@ func (s *scanner) scan(id byte) error {
 	case tagCompound:
 		return s.compound()
 
-	case tagIntArray:
+	case tagByteArray, tagIntArray, tagLongArray:
 		length, err := s.read32()
 		if err != nil {
 			return err
 		}
 
-		length *= 4
-
-		if s.at+length > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-
-		s.at += length
-
-	case tagLongArray:
-		length, err := s.read32()
-		if err != nil {
-			return err
-		}
-
-		length *= 8
+		length *= arrayTagPayload(id)
 
 		if s.at+length > len(s.buf) {
 			return io.ErrUnexpectedEOF
@@ -184,18 +142,64 @@ func (s *scanner) read32() (int, error) {
 	return int(uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3])), nil
 }
 
-const (
-	tagEnd uint8 = iota
-	tagByte
-	tagShort
-	tagInt
-	tagLong
-	tagFloat
-	tagDouble
-	tagByteArray
-	tagString
-	tagList
-	tagCompound
-	tagIntArray
-	tagLongArray
-)
+// tagPayload returns the payload of a nbt tag, if 0 is returned than the payload varies
+func tagPayload(id byte) int {
+	switch id {
+	case tagByte:
+		return 1
+	case tagShort:
+		return 2
+	case tagInt, tagFloat:
+		return 4
+	case tagLong, tagDouble:
+		return 8
+	default:
+		return 0
+	}
+}
+
+func arrayTagPayload(id byte) int {
+	switch id {
+	case tagByteArray:
+		return 1
+	case tagIntArray:
+		return 4
+	case tagLongArray:
+		return 8
+	default:
+		return 0
+	}
+}
+
+func tagName(id byte) string {
+	switch id {
+	case tagEnd:
+		return "tag_end"
+	case tagByte:
+		return "tag_byte"
+	case tagShort:
+		return "tag_short"
+	case tagInt:
+		return "tag_int"
+	case tagLong:
+		return "tag_long"
+	case tagFloat:
+		return "tag_float"
+	case tagDouble:
+		return "tag_double"
+	case tagByteArray:
+		return "tag_byte_array"
+	case tagString:
+		return "tag_string"
+	case tagList:
+		return "tag_list"
+	case tagCompound:
+		return "tag_compound"
+	case tagIntArray:
+		return "tag_int_array"
+	case tagLongArray:
+		return "tag_long_array"
+	default:
+		return "unknown"
+	}
+}

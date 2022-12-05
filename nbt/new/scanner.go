@@ -13,7 +13,7 @@ func checkValid(data []byte) error {
 	return (&scanner{buf: data}).scan(data[0])
 }
 
-//scanner verifies nbt input syntax
+// scanner verifies nbt input syntax
 type scanner struct {
 	buf []byte
 	at  int
