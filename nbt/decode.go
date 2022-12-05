@@ -2,135 +2,361 @@ package nbt
 
 import (
 	"fmt"
+	"log"
+	"math"
 	"reflect"
+	"strings"
+	"sync"
+	"unsafe"
 )
 
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	if err := checkValid(data); err != nil {
 		return err
 	}
 
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("nbt: interface must be a pointer")
+	if rv.Kind() != reflect.Pointer {
+		return fmt.Errorf("nbt: interface passed must be a pointer")
 	}
 
-	// 2 bytes for string length, 1 accounts for starting 0 index
-	length := int(uint16(data[1])<<8|uint16(data[2])) + 2 + 1 //FIXME
-
-	t := (&parser{buf: data, at: length}).parseTag(data[0])
-
-	return compound(rv.Elem(), t)
+	dec := &decoder{buf: data}
+	return dec.unmarshal(rv.Elem(), dec.buf[0])
 }
 
-func compound(v reflect.Value, t tag) error {
-	if v.Kind() == reflect.Map && t.typ == tagCompound {
-		v.Set(reflect.ValueOf(t.c.Map()))
-		return nil
-	}
+func (d *decoder) unmarshal(v reflect.Value, id byte) error {
+	switch id {
 
-	if v.Kind() == reflect.Struct && t.typ == tagCompound {
+	case tagByte:
+		if v.Kind() != reflect.Int8 {
+			return fmt.Errorf("nbt: cannot marshal byte tag into %v", v.Kind())
+		}
+		v.SetInt(int64(d.readByte()))
 
-		rt := v.Type()
-		for i := 0; i < v.NumField(); i++ {
+	case tagShort:
+		if v.Kind() != reflect.Int16 {
+			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
+		}
+		v.SetInt(int64(d.readShort()))
 
-			f := rt.Field(i)
+	case tagInt:
+		if v.Kind() != reflect.Int32 {
+			return fmt.Errorf("nbt: cannot marshal int tag into %v", v.Kind())
+		}
+		v.SetInt(int64(d.readInt()))
 
-			if f.IsExported() == false {
-				continue
-			}
+	case tagLong:
+		if v.Kind() != reflect.Int64 {
+			return fmt.Errorf("nbt: cannot marshal long tag into %v", v.Kind())
+		}
+		v.SetInt(d.readLong())
 
-			fieldKey := f.Name
-			if k, ok := f.Tag.Lookup("nbt"); ok {
-				fieldKey = k
-			}
+	case tagFloat:
+		if v.Kind() != reflect.Float32 {
+			return fmt.Errorf("nbt: cannot marshal float tag into %v", v.Kind())
+		}
+		v.SetFloat((float64)(math.Float32frombits((uint32)(d.readInt()))))
 
-			nbtTagType := typeToTag(f.Type)
-			if nbtTagType != 0 {
-				//fmt.Printf("nbtTagType %v, field key %v\n", nbtTagType, fieldKey)
-				//fmt.Printf("named tags %+v\n", t.c.namedTags)
-				if nbtValue, ok := t.c.getTag(nbtTagType, fieldKey); ok {
+	case tagDouble:
+		if v.Kind() != reflect.Float64 {
+			return fmt.Errorf("nbt: cannot marshal double tag into %v", v.Kind())
+		}
+		v.SetFloat(math.Float64frombits((uint64)(d.readLong())))
 
-					if nbtTagType == tagCompound {
-						if err := compound(v.Field(i), nbtValue); err != nil {
+	case tagString:
+		if v.Kind() != reflect.String {
+			return fmt.Errorf("nbt: cannot marshal string tag into %v", v.Kind())
+		}
+
+		v.SetString(strings.Clone(d.readUnsafeString()))
+
+	case tagList, tagByteArray, tagIntArray, tagLongArray:
+		if v.Kind() != reflect.Slice {
+			return fmt.Errorf("nbt: cannot marshal list tag into %v", v.Kind())
+		}
+		tagId := id
+		if id == tagList {
+			tagId = d.readByte() //get the type of list
+		}
+
+		return d.unmarshalList(v, tagId)
+
+	case tagCompound:
+		switch v.Kind() {
+
+		case reflect.Map:
+			d.unmarshalCompoundMap(v)
+
+		case reflect.Struct:
+			//	fmt.Println("UNMARSHALLING COMPOUND TAG USING STRUCT")
+
+			m := nameTags.Get().(map[string]nameTagMetaData)
+			defer func() {
+				for k := range m {
+					delete(m, k)
+				}
+				nameTags.Put(m)
+			}()
+			endPosition := d.fillMap(m)
+
+			//fmt.Print("BEGINNING OF MAP --- ")
+			//for k, data := range m {
+			//	fmt.Print(data.Type(), " ", k, ", ")
+			//}
+			//fmt.Println("---- ENDING OF MAP")
+
+			t := v.Type()
+			for i := 0; i < v.NumField(); i++ {
+				if f := t.Field(i); f.IsExported() {
+					key, ok := f.Tag.Lookup("nbt")
+					if !ok {
+						key = f.Name
+					}
+
+					if data, ok := m[key]; ok {
+						d.at = data.Index()
+						//fmt.Println("FOUND", key, data.Index(), data.Type())
+						if err := d.unmarshal(v.Field(i), data.Type()); err != nil {
 							return err
 						}
-					} else if nbtTagType == tagList {
-						if err := list(v.Field(i), nbtValue); err != nil {
-							return err
-						}
-					} else {
-						v.Field(i).Set(nbtValue.rv)
 					}
 				}
 			}
+
+			d.at = endPosition
+
+		default:
+			return fmt.Errorf("nbt: cannot marshal compound tag into %v", v.Kind())
 		}
 	}
 
 	return nil
 }
 
-func list(v reflect.Value, t tag) error {
-	if v.Type().Elem().Kind() == reflect.Struct {
-		s := reflect.MakeSlice(v.Type(), len(t.l), len(t.l))
+func (d *decoder) unmarshalCompoundMap(v reflect.Value) {
+	m := make(map[string]interface{})
+	for {
+		id := d.readByte()
+		if id == tagEnd {
+			v.Set(reflect.ValueOf(m))
+			return
+		}
 
-		for i := 0; i < len(t.l); i++ {
-			if err := compound(s.Index(i), t.l[i]); err != nil {
+		name := strings.Clone(d.readUnsafeString())
+
+		//fmt.Println("unmarshal compound tag", id, name)
+		switch id {
+
+		case tagString:
+			m[name] = strings.Clone(d.readUnsafeString())
+
+		}
+	}
+}
+
+// fillMap finds the indices of all the name tags in the top layer of a compound and returns the position where the compound tag ends
+func (d *decoder) fillMap(m map[string]nameTagMetaData) int {
+	s := scanner{buf: d.buf, at: d.at}
+	for {
+		if s.at+1 > len(s.buf) {
+			if s.buf[s.at-1] == tagEnd {
+				s.at--
+				return s.at
+			}
+
+			return -1
+		}
+		id := s.buf[s.at]
+		s.at++
+
+		if id == tagEnd {
+			return s.at
+		}
+
+		length := int(uint16(s.buf[s.at])<<8 | uint16(s.buf[s.at+1]))
+		s.at += 2
+
+		str := s.buf[s.at : s.at+length]
+		key := *(*string)(unsafe.Pointer(&str))
+		s.at += length
+
+		m[key] = nameTagMetaData(int(id)<<59 | s.at)
+
+		if err := s.scan(id); err != nil {
+			log.Panicf("%v decoding %v, at %v", err, id, s.at)
+		} //skip error because it's already been validated
+	}
+}
+
+func (d *decoder) unmarshalList(v reflect.Value, id byte) error {
+	length := (int)(d.readInt())
+	valueKind := v.Type().Elem().Kind()
+	switch id {
+
+	case tagByte, tagByteArray:
+		if valueKind != reflect.Int8 {
+			return fmt.Errorf("nbt: cannot marshal a byte array into %v", valueKind)
+		}
+
+		x := make([]byte, length)
+		d.at += copy(x, d.buf[d.at:d.at+length])
+		v.Set(reflect.ValueOf(x))
+
+	case tagShort:
+		if valueKind != reflect.Int16 {
+			return fmt.Errorf("nbt: cannot marshal a short array into %v slice", valueKind)
+		}
+
+		x := make([]int16, length)
+		for i := 0; i < length; i++ {
+			x[i] = d.readShort()
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagInt, tagIntArray:
+		if valueKind != reflect.Int32 {
+			return fmt.Errorf("nbt: cannot marshal a int array into %v slice", valueKind)
+		}
+
+		x := make([]int32, length)
+		for i := 0; i < length; i++ {
+			x[i] = d.readInt()
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagLong, tagLongArray:
+		if valueKind != reflect.Int64 {
+			return fmt.Errorf("nbt: cannot marshal a long array into %v slice", valueKind)
+		}
+
+		x := make([]int64, length)
+		for i := 0; i < length; i++ {
+			x[i] = d.readLong()
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagFloat:
+		if valueKind != reflect.Float32 {
+			return fmt.Errorf("nbt: cannot marshal a float array into %v slice", valueKind)
+		}
+
+		x := make([]float32, length)
+		for i := 0; i < length; i++ {
+			x[i] = math.Float32frombits((uint32)(d.readInt()))
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagDouble:
+		if valueKind != reflect.Float64 {
+			return fmt.Errorf("nbt: cannot marshal a double array into %v slice", valueKind)
+		}
+
+		x := make([]float64, length)
+		for i := 0; i < length; i++ {
+			x[i] = math.Float64frombits((uint64)(d.readLong()))
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagString:
+		if valueKind != reflect.String {
+			return fmt.Errorf("nbt: cannot marshal a string array into %v slice", valueKind)
+		}
+
+		x := make([]string, length)
+		for i := 0; i < length; i++ {
+			x[i] = strings.Clone(d.readUnsafeString())
+		}
+		v.Set(reflect.ValueOf(x))
+
+	case tagList, tagCompound:
+		slice := reflect.MakeSlice(v.Type(), length, length)
+		for i := 0; i < length; i++ {
+			if err := d.unmarshal(slice.Index(i), id); err != nil {
 				return err
 			}
 		}
 
-		v.Set(s)
-		return nil
+		v.Set(slice)
 	}
-
-	s := reflect.MakeSlice(v.Type(), len(t.l), len(t.l))
-
-	for i := 0; i < len(t.l); i++ {
-		s.Index(i).Set(t.l[i].rv)
-	}
-
-	v.Set(s)
 
 	return nil
 }
 
-func typeToTag(t reflect.Type) byte {
-	switch t.Kind() {
+type nameTagMetaData int
 
-	case reflect.Int8:
-		return tagByte
+func (d nameTagMetaData) Index() int {
+	return *(*int)(&d) & 0x7ffffffffffffff
+}
 
-	case reflect.Int16:
-		return tagShort
+func (d nameTagMetaData) Type() byte {
+	return (byte)(d >> 59)
+}
 
-	case reflect.Int32:
-		return tagInt
+// nameTags returns a map where the nbt type and position of name tags are stored
+var nameTags = sync.Pool{
+	New: func() any {
+		return make(map[string]nameTagMetaData)
+	},
+}
 
-	case reflect.Int64:
-		return tagLong
+type decoder struct {
+	buf []byte
+	at  int
+}
 
-	case reflect.Float32:
-		return tagFloat
-
-	case reflect.Float64:
-		return tagDouble
-
-	case reflect.String:
-		return tagString
-
-	case reflect.Struct, reflect.Map:
-		return tagCompound
-
-	case reflect.Slice:
-		if t.Elem().Kind() == reflect.Int32 {
-			return tagIntArray
-		} else if t.Elem().Kind() == reflect.Int64 {
-			return tagLongArray
-		}
-
-		return tagList
+func (d *decoder) readTag() (id byte, key string) {
+	if id = d.readByte(); id == tagCompound {
+		key = d.readUnsafeString()
 	}
 
-	return 0
+	return
 }
+
+func (d *decoder) readByte() byte {
+	v := d.buf[d.at]
+	d.at++
+	return v
+}
+
+func (d *decoder) readShort() int16 {
+	v := int16(d.buf[d.at])<<8 | int16(d.buf[d.at+1])
+	d.at += 2
+	return v
+}
+
+func (d *decoder) readInt() int32 {
+	v := int32(d.buf[d.at])<<24 | int32(d.buf[d.at+1])<<16 | int32(d.buf[d.at+2])<<8 | int32(d.buf[d.at+3])
+	d.at += 4
+	return v
+}
+
+func (d *decoder) readLong() int64 {
+	v := int64(d.buf[d.at])<<56 | int64(d.buf[d.at+1])<<48 | int64(d.buf[d.at+2])<<40 | int64(d.buf[d.at+3])<<32 | int64(d.buf[d.at+4])<<24 | int64(d.buf[d.at+5])<<16 | int64(d.buf[d.at+6])<<8 | int64(d.buf[d.at+7])
+	d.at += 8
+	return v
+}
+
+func (d *decoder) readUnsafeString() string {
+	v := int(d.buf[d.at])<<8 | int(d.buf[d.at+1])
+	d.at += 2
+
+	str := d.buf[d.at : d.at+v]
+	d.at += v
+	return *(*string)(unsafe.Pointer(&str))
+}
+
+const (
+	tagEnd = iota
+	tagByte
+	tagShort
+	tagInt
+	tagLong
+	tagFloat
+	tagDouble
+	tagByteArray
+	tagString
+	tagList
+	tagCompound
+	tagIntArray
+	tagLongArray
+)

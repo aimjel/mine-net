@@ -7,8 +7,8 @@ import (
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/player"
 	"io"
-    "log"
-    "net"
+	"log"
+	"net"
 	"sync"
 )
 
@@ -102,12 +102,12 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 	pk := fn()
 
 	if err = pk.Decode(r); err != nil {
-        log.Printf("%v decoding %#v", err, pk)
-        if err == packet.NotImplemneted {
-            return pk, nil
-        }
+		log.Printf("%v decoding %#v", err, pk)
+		if err == packet.NotImplemneted {
+			return pk, nil
+		}
 
-        return nil, nil
+		return nil, nil
 	}
 
 	return pk, nil
