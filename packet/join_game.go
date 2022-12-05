@@ -10,12 +10,11 @@ type JoinGame struct {
 	IsHardcore       bool
 	GameMode         uint8
 	PreviousGameMode int8
-	WorldNames       []string
+	DimensionNames   []string
 
 	//Dimension Codec & Dimension
 
 	DimensionName       string
-	WorldName           string
 	HashedSeed          int64
 	MaxPlayers          int32
 	ViewDistance        int32
@@ -39,13 +38,12 @@ func (g JoinGame) Encode(w Writer) error {
 	_ = w.Bool(g.IsHardcore)
 	_ = w.Uint8(g.GameMode)
 	_ = w.Int8(g.PreviousGameMode)
-	_ = w.VarInt(int32(len(g.WorldNames)))
-	for _, world := range g.WorldNames {
+	_ = w.VarInt(int32(len(g.DimensionNames)))
+	for _, world := range g.DimensionNames {
 		_ = w.String(world)
 	}
 	_ = w.Nbt(dimensions)
 	_ = w.String(g.DimensionName)
-	_ = w.String(g.WorldName)
 	_ = w.Int64(g.HashedSeed)
 	_ = w.VarInt(g.MaxPlayers)
 	_ = w.VarInt(g.ViewDistance)
