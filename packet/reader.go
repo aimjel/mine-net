@@ -195,7 +195,7 @@ func (r *Reader) isEOF(n int) bool {
 func DecodeLocation(l uint64) (x int32, y int32, z int32) {
 	x = int32(l >> 38)
 	y = int32(l & 0xfff)
-	z = int32(((l >> 12) & 0x3ffffff))
+	z = int32((l >> 12) & 0x3ffffff)
 
 	if x >= 1<<25 {
 		x -= 1 << 26
