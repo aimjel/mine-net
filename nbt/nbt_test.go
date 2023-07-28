@@ -13,38 +13,38 @@ var bigTestData []byte
 //go:embed testdata/chunk.nbt
 var chunkData []byte
 
-var bigTest struct {
-	//Level struct {
-	LongTest           int64   `nbt:"longTest"`
-	ShortTest          int16   `nbt:"shortTest"`
-	StringTest         string  `nbt:"stringTest"`
-	FloatTest          float32 `nbt:"floatTest"`
-	IntTest            int32   `nbt:"intTest"`
-	NestedCompoundTest struct {
-		Ham struct {
-			Name  string  `nbt:"name"`
-			Value float32 `nbt:"value"`
-		} `nbt:"ham"`
-		Egg struct {
-			Name  string  `nbt:"name"`
-			Value float32 `nbt:"value"`
-		} `nbt:"egg"`
-	} `nbt:"nested compound test"`
+type bigTest struct {
+	Level struct {
+		LongTest           int64   `nbt:"longTest"`
+		ShortTest          int16   `nbt:"shortTest"`
+		StringTest         string  `nbt:"stringTest"`
+		FloatTest          float32 `nbt:"floatTest"`
+		IntTest            int32   `nbt:"intTest"`
+		NestedCompoundTest struct {
+			Ham struct {
+				Name  string  `nbt:"name"`
+				Value float32 `nbt:"value"`
+			} `nbt:"ham"`
+			Egg struct {
+				Name  string  `nbt:"name"`
+				Value float32 `nbt:"value"`
+			} `nbt:"egg"`
+		} `nbt:"nested compound test"`
 
-	ListTestLong []int64 `nbt:"listTest (long)"`
+		ListTestLong []int64 `nbt:"listTest (long)"`
 
-	ListTestCompound []struct {
-		Name      string `nbt:"name"`
-		CreatedOn int64  `nbt:"created-on"`
-	} `nbt:"listTest (compound)"`
+		ListTestCompound []struct {
+			Name      string `nbt:"name"`
+			CreatedOn int64  `nbt:"created-on"`
+		} `nbt:"listTest (compound)"`
 
-	ByteTest int8 `nbt:"byteTest"`
+		ByteTest int8 `nbt:"byteTest"`
 
-	DoubleTest float64 `nbt:"doubleTest"`
-	//}
+		DoubleTest float64 `nbt:"doubleTest"`
+	}
 }
 
-var chunk struct {
+type chunk struct {
 	Level struct {
 		Status        string
 		ZPos          int32 `nbt:"zPos"`
@@ -72,23 +72,19 @@ var chunk struct {
 	DataVersion int32
 }
 
-func TestUnmarshal(t *testing.T) {
-	if err := Unmarshal(chunkData, &chunk); err != nil {
+func TestUnmarshal_chunk(t *testing.T) {
+	var c chunk
+	if err := Unmarshal(chunkData, &c); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%+v\n", chunk)
-
-	if err := Unmarshal(bigTestData, &bigTest); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("%+v\n", bigTest)
+	t.Logf("%+v\n", c)
 }
 
 func BenchmarkUnmarshalChunk(b *testing.B) {
+	var c chunk
 	for i := 0; i < b.N; i++ {
-		if err := Unmarshal(chunkData, &chunk); err != nil {
+		if err := Unmarshal(chunkData, &c); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -97,8 +93,9 @@ func BenchmarkUnmarshalChunk(b *testing.B) {
 }
 
 func BenchmarkUnmarshalBigTest(b *testing.B) {
+	var bgTest bigTest
 	for i := 0; i < b.N; i++ {
-		if err := Unmarshal(bigTestData, &bigTest); err != nil {
+		if err := Unmarshal(bigTestData, &bgTest); err != nil {
 			b.Fatal(err)
 		}
 	}

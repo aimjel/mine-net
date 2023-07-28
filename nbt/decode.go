@@ -2,7 +2,6 @@ package nbt
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"strings"
@@ -17,11 +16,12 @@ func Unmarshal(data []byte, v any) error {
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Pointer {
-		return fmt.Errorf("nbt: interface passed must be a pointer")
+		return fmt.Errorf("nbt: value passed must be a pointer")
 	}
 
 	dec := &decoder{buf: data}
-	return dec.unmarshal(rv.Elem(), dec.buf[0])
+	id, _ := dec.readTag()
+	return dec.unmarshal(rv.Elem(), id)
 }
 
 func (d *decoder) unmarshal(v reflect.Value, id byte) error {
@@ -88,8 +88,6 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 			d.unmarshalCompoundMap(v)
 
 		case reflect.Struct:
-			//	fmt.Println("UNMARSHALLING COMPOUND TAG USING STRUCT")
-
 			m := nameTags.Get().(map[string]nameTagMetaData)
 			defer func() {
 				for k := range m {
@@ -98,12 +96,6 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 				nameTags.Put(m)
 			}()
 			endPosition := d.fillMap(m)
-
-			//fmt.Print("BEGINNING OF MAP --- ")
-			//for k, data := range m {
-			//	fmt.Print(data.Type(), " ", k, ", ")
-			//}
-			//fmt.Println("---- ENDING OF MAP")
 
 			t := v.Type()
 			for i := 0; i < v.NumField(); i++ {
@@ -115,7 +107,7 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 
 					if data, ok := m[key]; ok {
 						d.at = data.Index()
-						//fmt.Println("FOUND", key, data.Index(), data.Type())
+
 						if err := d.unmarshal(v.Field(i), data.Type()); err != nil {
 							return err
 						}
@@ -154,8 +146,9 @@ func (d *decoder) unmarshalCompoundMap(v reflect.Value) {
 	}
 }
 
-// fillMap finds the indices of all the name tags in the top layer of a compound and returns the position where the compound tag ends
+// fillMap fills a map with the children name, type and index of the compound tag read.
 func (d *decoder) fillMap(m map[string]nameTagMetaData) int {
+
 	s := scanner{buf: d.buf, at: d.at}
 	for {
 		if s.at+1 > len(s.buf) {
@@ -182,9 +175,7 @@ func (d *decoder) fillMap(m map[string]nameTagMetaData) int {
 
 		m[key] = nameTagMetaData(int(id)<<59 | s.at)
 
-		if err := s.scan(id); err != nil {
-			log.Panicf("%v decoding %v, at %v", err, id, s.at)
-		} //skip error because it's already been validated
+		_ = s.scan(id) //skip error because it's already been validated
 	}
 }
 
