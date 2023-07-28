@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"unsafe"
 )
 
 type Reader struct {
@@ -42,16 +43,6 @@ func (r *Reader) Uint8(x *uint8) error {
 	return nil
 }
 
-func (r *Reader) Int8(x *int8) error {
-	if r.isEOF(1) {
-		return io.ErrUnexpectedEOF
-	}
-
-	*x = int8(r.buf[r.at])
-	r.at++
-	return nil
-}
-
 func (r *Reader) Uint16(x *uint16) error {
 	if r.isEOF(2) {
 		return io.ErrUnexpectedEOF
@@ -64,31 +55,7 @@ func (r *Reader) Uint16(x *uint16) error {
 	return nil
 }
 
-func (r *Reader) Int16(x *int16) error {
-	if r.isEOF(2) {
-		return io.ErrUnexpectedEOF
-	}
-
-	b := r.buf[r.at : r.at+2]
-	r.at += 2
-
-	*x = int16(uint16(b[0])<<8 | uint16(b[1]))
-	return nil
-}
-
-func (r *Reader) Int32(x *int32) error {
-	if r.isEOF(4) {
-		return io.ErrUnexpectedEOF
-	}
-
-	b := r.buf[r.at : r.at+4]
-	r.at += 4
-
-	*x = int32(b[0])<<24 | int32(b[1])<<16 | int32(b[2])<<8 | int32(b[3])
-	return nil
-}
-
-func (r *Reader) Int64(x *int64) error {
+func (r *Reader) Uint32(x *uint32) error {
 	if r.isEOF(8) {
 		return io.ErrUnexpectedEOF
 	}
@@ -96,20 +63,36 @@ func (r *Reader) Int64(x *int64) error {
 	b := r.buf[r.at : r.at+8]
 	r.at += 8
 
-	*x = int64(b[0])<<56 | int64(b[1])<<48 | int64(b[2])<<40 | int64(b[3])<<32 | int64(b[4])<<24 | int64(b[5])<<16 | int64(b[6])<<8 | int64(b[7])
+	*x = uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0])
 	return nil
 }
 
 func (r *Reader) Uint64(x *uint64) error {
-    if r.isEOF(8) {
-        return io.ErrUnexpectedEOF
-    }
+	if r.isEOF(8) {
+		return io.ErrUnexpectedEOF
+	}
 
-    b := r.buf[r.at : r.at+8]
-    r.at += 8
+	b := r.buf[r.at : r.at+8]
+	r.at += 8
 
-    *x = uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
-    return nil
+	*x = uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
+	return nil
+}
+
+func (r *Reader) Int8(x *int8) error {
+	return r.Uint8((*uint8)(unsafe.Pointer(x)))
+}
+
+func (r *Reader) Int16(x *int16) error {
+	return r.Uint16((*uint16)(unsafe.Pointer(x)))
+}
+
+func (r *Reader) Int32(x *int32) error {
+	return r.Uint32((*uint32)(unsafe.Pointer(x)))
+}
+
+func (r *Reader) Int64(x *int64) error {
+	return r.Uint64((*uint64)(unsafe.Pointer(x)))
 }
 
 func (r *Reader) Float32(x *float32) error {
@@ -210,18 +193,18 @@ func (r *Reader) isEOF(n int) bool {
 }
 
 func DecodeLocation(l uint64) (x int32, y int32, z int32) {
-    x = int32(l >> 38)
-    y = int32(l & 0xfff)
-    z = int32(((l >> 12) & 0x3ffffff))
+	x = int32(l >> 38)
+	y = int32(l & 0xfff)
+	z = int32(((l >> 12) & 0x3ffffff))
 
-    if x >= 1<<25{
-        x -= 1<<26
-    }
-    if y >=1<<11{
-        y -= 1<<12
-    }
-    if z >= 1<<25 {
-        z -= 1<<26
-    }
-    return
+	if x >= 1<<25 {
+		x -= 1 << 26
+	}
+	if y >= 1<<11 {
+		y -= 1 << 12
+	}
+	if z >= 1<<25 {
+		z -= 1 << 26
+	}
+	return
 }

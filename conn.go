@@ -2,186 +2,107 @@ package minecraft
 
 import (
 	"crypto/cipher"
-	"encoding/binary"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/player"
-	"io"
-    "log"
-    "net"
+	"github.com/aimjel/minecraft/protocol"
+	"net"
 	"sync"
 )
 
 type Conn struct {
-	tcp *net.TCPConn
+	tcpCn *net.TCPConn
 
-	dec *decoder
+	dec *protocol.Decoder
 
-	enc *encoder
+	enc *protocol.Encoder
 
-	pool map[int32]func() packet.Packet
+	pool protocol.Pool
 
 	Info *player.Info
-}
 
-func Dial(address string) (*Conn, error) {
-	cn, err := net.Dial("tcp4", address)
-	if err != nil {
-		return nil, err
-	}
-
-	return newConn(cn.(*net.TCPConn)), nil
+	//encMu protects the enc from data races if two goroutines try to write a packet
+	encMu sync.Mutex
 }
 
 func newConn(c *net.TCPConn) *Conn {
 	return &Conn{
-		tcp: c,
-		dec: &decoder{
-			rd:  c,
-			buf: make([]byte, 1024),
-		},
-		enc: &encoder{
-			wr:  c,
-			buf: make([]byte, 1024*1024),
-			w:   3, //ensures the packet length fits
-			r:   3,
-		},
+		tcpCn: c,
+
+		dec: protocol.NewDecoder(c),
+
+		enc: protocol.NewEncoder(c),
+
+		pool: protocol.NewPool([]packet.Packet{
+			0: &packet.Handshake{},
+		}),
 	}
-}
-
-func (c *Conn) RemoteAddr() net.Addr {
-	return c.tcp.RemoteAddr()
-}
-
-func (c *Conn) Close() {
-	if err := c.tcp.Close(); err != nil {
-		fmt.Printf("%v: %v closing connection\n", c.RemoteAddr(), err)
-	}
-}
-
-func (c *Conn) enableEncryption(b cipher.Block, iv []byte) {
-	c.dec.cipher = newCFB(b, iv, true)
-	c.enc.cipher = newCFB(b, iv, false)
-}
-
-func (c *Conn) WritePacket(pk packet.Packet) error {
-	c.enc.mu.Lock()
-	defer c.enc.mu.Unlock()
-	w := packet.NewWriter(c.enc)
-
-	if err := w.VarInt(pk.ID()); err != nil {
-		return err
-	}
-
-	if err := pk.Encode(w); err != nil {
-		return err
-	}
-
-	fmt.Printf("%v: packet %x sent\n", c.RemoteAddr(), pk.ID())
-	return c.enc.flush()
 }
 
 func (c *Conn) ReadPacket() (packet.Packet, error) {
-	p, err := c.dec.decodePacket()
+	data, err := c.dec.DecodePacket()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v decoding packet", err)
 	}
+
+	pw := packet.NewReader(data)
 
 	var id int32
-	r := packet.NewReader(p)
-	if err = r.VarInt(&id); err != nil {
-		return nil, fmt.Errorf("%v reading packet id", err)
+	if err = pw.VarInt(&id); err != nil {
+		return nil, fmt.Errorf("%v decoding packet id", err)
 	}
 
-	fn, ok := c.pool[id]
-	if ok == false {
-		fmt.Printf("%v: unknown packet#%x{%v}\n", c.RemoteAddr(), id, p)
-		return nil, nil
+	pk := c.pool.Get(id)
+	if pk == nil {
+		return nil, fmt.Errorf("packet %x is unknown", id)
 	}
 
-	pk := fn()
-
-	if err = pk.Decode(r); err != nil {
-        log.Printf("%v decoding %#v", err, pk)
-        if err == packet.NotImplemneted {
-            return pk, nil
-        }
-
-        return nil, nil
+	if err = pk.Decode(pw); err != nil {
+		return nil, fmt.Errorf("%v decoding packet contents", err)
 	}
 
 	return pk, nil
 }
 
-func (c *Conn) DecodePacket(pk packet.Packet) error {
-	p, err := c.dec.decodePacket()
-	if err != nil {
-		return err
+func (c *Conn) WritePacket(pk packet.Packet, forceSend bool) error {
+	c.encMu.Lock()
+	defer c.encMu.Unlock()
+
+	wr := packet.NewWriter(c.enc)
+
+	if err := wr.VarInt(pk.ID()); err != nil {
+		return fmt.Errorf("%v encoding packet id", err)
 	}
 
-	var id int32
-	r := packet.NewReader(p)
-	if err = r.VarInt(&id); err != nil {
-		return fmt.Errorf("%v reading packet id", err)
+	if err := pk.Encode(wr); err != nil {
+		return fmt.Errorf("%v encoding packet", err)
 	}
 
-	if id != pk.ID() {
-		return fmt.Errorf("unexpected id")
+	c.enc.Encode()
+
+	if forceSend {
+		return c.enc.Flush()
 	}
 
-	return pk.Decode(r)
-}
-
-type encoder struct {
-	wr io.Writer //connection
-
-	cipher cipher.Stream
-
-	mu sync.Mutex //protects buffer
-
-	buf []byte
-
-	r, w int
-}
-
-func (enc *encoder) flush() error {
-	n := binary.PutUvarint(enc.buf, uint64(enc.w-enc.r))
-
-	//move the packet length value to the right index
-	copy(enc.buf[enc.r-n:], enc.buf[:n])
-
-	if enc.cipher != nil {
-		enc.cipher.XORKeyStream(enc.buf[enc.r-n:enc.w], enc.buf[enc.r-n:enc.w])
-	}
-
-	_, err := enc.wr.Write(enc.buf[enc.r-n : enc.w])
-	enc.r, enc.w = 3, 3
-
-	return err
-}
-
-func (enc *encoder) Write(p []byte) (int, error) {
-	if enc.w+len(p) > len(enc.buf) {
-		enc.grow(len(p))
-	}
-
-	n := copy(enc.buf[enc.w:], p)
-	enc.w += n
-	return n, nil
-}
-
-func (enc *encoder) WriteByte(c byte) error {
-	if enc.w+1 > len(enc.buf) {
-		enc.grow(1)
-	}
-
-	enc.buf[enc.w] = c
-	enc.w++
 	return nil
 }
 
-func (enc *encoder) grow(n int) {
-	c := make([]byte, (len(enc.buf)+n)*2)
-	enc.w = copy(c, enc.buf[:enc.w])
-	enc.buf = c
+func (c *Conn) FlushPackets() error {
+	c.encMu.Lock()
+	defer c.encMu.Unlock()
+
+	return c.enc.Flush()
+}
+
+func (c *Conn) enableEncryption(block cipher.Block, sharedSecret []byte) {
+	c.dec.EnableDecryption(block, sharedSecret)
+	c.enc.EnableEncryption(block, sharedSecret)
+}
+
+func (c *Conn) Close(err error) {
+	if err != nil {
+		fmt.Printf("%v: Connection Closed: %v\n", c.tcpCn.RemoteAddr(), err)
+	}
+
+	c.tcpCn.Close()
 }

@@ -7,117 +7,66 @@ import (
 	"fmt"
 	"github.com/aimjel/minecraft/chat"
 	"image/png"
+	"math"
 	"os"
 )
 
 type Status struct {
-	//name of the version the server is running on
-	name string
+	enc *json.Encoder
 
-	//protocol the server is compatible with
-	protocol int
+	buf *bytes.Buffer
 
-	//max players the server is advertised for
-	max int
-
-	//online number of players on the server
-	online int32
-
-	//samples of the server shown when the player hovers over the connection bar
-	samples []string
-
-	//description about the server
-	description chat.Message
-
-	//favicon servers icon
-	favicon string
+	s *status
 }
 
-func NewStatus(protocol, max int, samples []string, desc string) *Status {
-	s := &Status{
-		name:        versionName(protocol),
-		protocol:    protocol,
-		max:         max,
-		samples:     samples,
-		description: chat.NewMessage(desc),
+func NewStatus(protocol, max int, desc string) *Status {
+	var s status
+	s.Version.Name, s.Version.Protocol = versionName(protocol), protocol
+	s.Players.Max, s.Description = max, chat.NewMessage(desc)
+
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	_ = enc.Encode(s)
+
+	st := &Status{enc: enc, buf: &buf, s: &s}
+
+	size := buf.Len() + 34 //34 for the favicon key and prepended info, including quotes and comma
+
+	b := bytes.NewBuffer(nil)
+	st.loadIcon(b)
+
+	if size+b.Len() < math.MaxInt16 {
+		st.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b.Bytes())
 	}
 
-	d, _ := s.MarshalJSON()
-	if len(d) > 32767 {
-		fmt.Println("server description or sample is too big")
-		return nil
-	}
+	enc.Encode(s)
+	return st
+}
 
+func (s *Status) loadIcon(buf *bytes.Buffer) {
 	f, err := os.Open("server-icon.png")
 	defer f.Close()
 	if err != nil {
-		if os.IsNotExist(err) == false {
-			fmt.Printf("%v opening server-icon", err)
-		}
-
-		fmt.Printf("%v", err)
-		return s
-	}
-
-	cfg, err := png.DecodeConfig(f)
-	if err != nil {
-		fmt.Printf("%v decoding server-icon", err)
-		return s
-	}
-
-	if cfg.Width != 64 || cfg.Height != 64 {
-		fmt.Println("server icon must be 64x64")
-		return s
+		return
 	}
 
 	_, _ = f.Seek(0, 0)
 	m, err := png.Decode(f)
 	if err != nil {
-		fmt.Printf("%v decoding server icon", err)
-		return s
+		return
 	}
 
 	var e png.Encoder
 	e.CompressionLevel = png.DefaultCompression
 
-	b := bytes.NewBuffer(make([]byte, 0, 1024*8))
-
-	if err = e.Encode(b, m); err != nil {
+	if err = e.Encode(buf, m); err != nil {
 		fmt.Printf("%v compressiong server icon", err)
-		return s
 	}
 
-	if b.Len()+len(d) > 23767 {
-		fmt.Printf("server icon is too big!")
-		return s
-	}
-
-	s.favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b.Bytes())
-
-	return s
 }
 
-func (s Status) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{}{
-		"version": map[string]interface{}{
-			"name":     s.name,
-			"protocol": s.protocol,
-		},
-
-		"players": map[string]interface{}{
-			"max":     s.max,
-			"online":  s.online,
-			"samples": s.samples,
-		},
-
-		"description": s.description,
-	}
-
-	if s.favicon != "" {
-		m["favicon"] = s.favicon
-	}
-
-	return json.Marshal(m)
+func (s *Status) json() []byte {
+	return s.buf.Bytes()
 }
 
 func versionName(protocol int) string {
@@ -126,4 +75,22 @@ func versionName(protocol int) string {
 		756: "1.17.1",
 		755: "1.17",
 	}[protocol]
+}
+
+// status represents the json response in struct for more performance
+type status struct {
+	Version struct {
+		Name     string `json:"name"`
+		Protocol int    `json:"protocol"`
+	} `json:"version"`
+	Players struct {
+		Max    int `json:"max"`
+		Online int `json:"online"`
+		Sample []struct {
+			Name string `json:"name"`
+			Id   string `json:"id"`
+		} `json:"sample"`
+	} `json:"players"`
+	Description chat.Message `json:"description"`
+	Favicon     string       `json:"favicon"`
 }

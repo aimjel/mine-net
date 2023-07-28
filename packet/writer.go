@@ -97,6 +97,7 @@ func (w *Writer) String(x string) error {
 
 func (w *Writer) ByteArray(x []byte) error {
 	if err := w.VarInt(int32(len(x))); err != nil {
+		fmt.Println(len(x))
 		return fmt.Errorf("%v wrintng byte array length", err)
 	}
 
