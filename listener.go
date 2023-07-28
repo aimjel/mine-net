@@ -108,14 +108,18 @@ func (l *Listener) handle(conn *net.TCPConn) {
 		switch hs.NextState {
 
 		case 0x01: //status
-			if err = l.handleStatus(c); err != nil {
+			if err = l.handleStatus(c); err != nil && l.status != nil {
 				c.Close(fmt.Errorf("%v while handling status", err))
 			}
+
+			c.Close(nil)
 
 		case 0x02:
 			if err = l.handleLogin(c); err != nil {
 				c.Close(fmt.Errorf("%v while handling login", err))
 			}
+
+			l.await <- c
 		}
 	} else {
 		c.Close(fmt.Errorf("unknown initial packet"))
