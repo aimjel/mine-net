@@ -24,7 +24,6 @@ func (r *Reader) Bool(x *bool) error {
 	}
 
 	b := r.buf[r.at]
-	fmt.Println(r.buf, r.buf[r.at])
 	r.at++
 	if b > 1 {
 		return fmt.Errorf("boolean overflows a 1-bit integer")

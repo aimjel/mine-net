@@ -81,6 +81,15 @@ func TestUnmarshal_chunk(t *testing.T) {
 	t.Logf("%+v\n", c)
 }
 
+func TestUnmarshal_bigtest(t *testing.T) {
+	var bg bigTest
+	if err := Unmarshal(bigTestData, &bg); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%+v\n", bg)
+}
+
 func BenchmarkUnmarshalChunk(b *testing.B) {
 	var c chunk
 	for i := 0; i < b.N; i++ {
