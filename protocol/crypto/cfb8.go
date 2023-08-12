@@ -3,11 +3,11 @@ package crypto
 import "crypto/cipher"
 
 type CFB8 struct {
-	//input the input block used to produce an output block
-	//also the same as the iv, but overtime is changed
+	// the input block used to produce an output block
+	//also the same as the iv, but overtime it's changed
 	input []byte
 
-	//output used to decipher and crypto plaintext and crypto segments
+	//output used to decipher and cipher plaintext and cipher segments
 	output []byte
 
 	//block is the forward crypto function
@@ -25,10 +25,10 @@ func (x *CFB8) XORKeyStream(dst, src []byte) {
 		//the IV to produce the first output block
 		x.block.Encrypt(x.output, x.input)
 
-		//both the crypto and plain text segments are XOR with the msb s bits of the output block
+		//both the cipher plain text and segments are XOR with the msb s bits of the output block
 		dst[i] = v ^ x.output[0]
 
-		//makes room to concatenate s bits of crypto text segment for
+		//makes room to concatenate s bits of cipher text segment for
 		//encryption, and plaintext segment for decryption
 		copy(x.input, x.input[1:16])
 		if x.decrypt {
