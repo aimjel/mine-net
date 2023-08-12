@@ -17,7 +17,7 @@ type Conn struct {
 
 	enc *protocol.Encoder
 
-	pool protocol.Pool
+	pool Pool
 
 	Info *player.Info
 
@@ -31,11 +31,7 @@ func newConn(c *net.TCPConn) *Conn {
 
 		dec: protocol.NewDecoder(c),
 
-		enc: protocol.NewEncoder(c),
-
-		pool: protocol.NewPool([]packet.Packet{
-			0: &packet.Handshake{},
-		}),
+		enc: protocol.NewEncoder(),
 	}
 }
 
@@ -54,49 +50,94 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 
 	pk := c.pool.Get(id)
 	if pk == nil {
-		return nil, fmt.Errorf("packet %x is unknown", id)
+		return packet.Unknown{Id: id}, nil
 	}
 
 	if err = pk.Decode(pw); err != nil {
-		return nil, fmt.Errorf("%v decoding packet contents", err)
+		return nil, fmt.Errorf("%v decoding packet contents for %#v", err, pk)
 	}
 
 	return pk, nil
 }
 
-func (c *Conn) WritePacket(pk packet.Packet, forceSend bool) error {
-	c.encMu.Lock()
-	defer c.encMu.Unlock()
-
-	wr := packet.NewWriter(c.enc)
-
-	if err := wr.VarInt(pk.ID()); err != nil {
-		return fmt.Errorf("%v encoding packet id", err)
+func (c *Conn) DecodePacket(pk packet.Packet) error {
+	payload, err := c.dec.DecodePacket()
+	if err != nil {
+		return err
 	}
 
-	if err := pk.Encode(wr); err != nil {
-		return fmt.Errorf("%v encoding packet", err)
+	rd := packet.NewReader(payload)
+
+	var id int32
+	if err = rd.VarInt(&id); err != nil {
+		return fmt.Errorf("%v decoding packet id", err)
 	}
 
-	c.enc.Encode()
+	if id != pk.ID() {
+		return fmt.Errorf("unexpected packet ID %x received. Expected packet ID to be %x", id, pk.ID())
+	}
 
-	if forceSend {
-		return c.enc.Flush()
+	if err = pk.Decode(rd); err != nil {
+		return fmt.Errorf("%v decoding packet contents for %+v", err, pk)
 	}
 
 	return nil
+}
+
+// SendPacket writes and immediately sends the packet.
+// Use for critical information. overusing can cause
+// more latency and bandwidth to be used.
+func (c *Conn) SendPacket(pk packet.Packet) error {
+	c.encMu.Lock()
+	defer c.encMu.Unlock()
+
+	if err := c.enc.Encode(pk); err != nil {
+		return err
+	}
+
+	data := c.enc.Flush()
+	if _, err := c.tcpCn.Write(data); err != nil {
+		return fmt.Errorf("%v sending packet %v", err, pk)
+	}
+
+	return nil
+}
+
+// WritePacket writes the packet to a buffer.
+// Use for situations where packets don't need to be sent IMMEDIATELY.
+// Chat messages etc.
+// Can also be used to improve bandwidth and client side latency by sending all the data at once.
+// Just make sure it's done in a timely way
+func (c *Conn) WritePacket(pk packet.Packet) error {
+	c.encMu.Lock()
+	defer c.encMu.Unlock()
+
+	return c.enc.Encode(pk)
 }
 
 func (c *Conn) FlushPackets() error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 
-	return c.enc.Flush()
+	if _, err := c.tcpCn.Write(c.enc.Flush()); err != nil {
+		return fmt.Errorf("%v writing packets", err)
+	}
+
+	return nil
 }
 
 func (c *Conn) enableEncryption(block cipher.Block, sharedSecret []byte) {
 	c.dec.EnableDecryption(block, sharedSecret)
 	c.enc.EnableEncryption(block, sharedSecret)
+}
+
+func (c *Conn) enableCompression(threshold int32) {
+	if err := c.SendPacket(&packet.SetCompression{Threshold: threshold}); err != nil {
+		panic(err)
+	}
+
+	c.dec.EnableDecompression()
+	c.enc.EnableCompression(int(threshold))
 }
 
 func (c *Conn) Close(err error) {
@@ -105,4 +146,8 @@ func (c *Conn) Close(err error) {
 	}
 
 	c.tcpCn.Close()
+}
+
+func (c *Conn) RemoteAddr() net.Addr {
+	return c.tcpCn.RemoteAddr()
 }

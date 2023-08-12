@@ -24,6 +24,7 @@ func (r *Reader) Bool(x *bool) error {
 	}
 
 	b := r.buf[r.at]
+	fmt.Println(r.buf, r.buf[r.at])
 	r.at++
 	if b > 1 {
 		return fmt.Errorf("boolean overflows a 1-bit integer")
@@ -56,14 +57,14 @@ func (r *Reader) Uint16(x *uint16) error {
 }
 
 func (r *Reader) Uint32(x *uint32) error {
-	if r.isEOF(8) {
+	if r.isEOF(4) {
 		return io.ErrUnexpectedEOF
 	}
 
-	b := r.buf[r.at : r.at+8]
-	r.at += 8
+	b := r.buf[r.at : r.at+4]
+	r.at += 4
 
-	*x = uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0])
+	*x = uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
 	return nil
 }
 
@@ -96,30 +97,22 @@ func (r *Reader) Int64(x *int64) error {
 }
 
 func (r *Reader) Float32(x *float32) error {
-	if r.isEOF(4) {
-		return io.ErrUnexpectedEOF
+	var ui uint32
+	if err := r.Uint32(&ui); err != nil {
+		return err
 	}
 
-	b := r.buf[r.at : r.at+4]
-	r.at += 4
-
-	ub := uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
-
-	*x = math.Float32frombits(ub)
+	*x = math.Float32frombits(ui)
 	return nil
 }
 
 func (r *Reader) Float64(x *float64) error {
-	if r.isEOF(8) {
-		return io.ErrUnexpectedEOF
+	var ui uint64
+	if err := r.Uint64(&ui); err != nil {
+		return err
 	}
 
-	b := r.buf[r.at : r.at+8]
-	r.at += 8
-
-	ub := uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
-
-	*x = math.Float64frombits(ub)
+	*x = math.Float64frombits(ui)
 	return nil
 }
 

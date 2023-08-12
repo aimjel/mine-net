@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/player"
-	"github.com/aimjel/minecraft/protocol"
 	"io"
 	"net"
 	"net/http"
@@ -32,7 +31,8 @@ type ListenConfig struct {
 	// CompressionThreshold compresses packets when they exceed n bytes.
 	//-1 disables compression
 	// 0 compresses everything
-	CompressionThreshold int
+	CompressionThreshold int32
+
 	//todo add more config fields
 }
 
@@ -74,7 +74,7 @@ type Listener struct {
 
 	status *Status
 
-	compressionThreshold int
+	compressionThreshold int32
 
 	err error
 
@@ -97,164 +97,153 @@ func (l *Listener) listen() {
 // handle new connections
 func (l *Listener) handle(conn *net.TCPConn) {
 	c := newConn(conn)
-	pk, err := c.ReadPacket()
-	if err != nil {
+
+	var pk packet.Handshake
+	if err := c.DecodePacket(&pk); err != nil {
 		c.Close(err)
 		return
 	}
 
-	if hs, ok := pk.(*packet.Handshake); ok {
+	switch pk.NextState {
 
-		switch hs.NextState {
-
-		case 0x01: //status
-			if err = l.handleStatus(c); err != nil && l.status != nil {
-				c.Close(fmt.Errorf("%v while handling status", err))
-			}
-
-			c.Close(nil)
-
-		case 0x02:
-			if err = l.handleLogin(c); err != nil {
-				c.Close(fmt.Errorf("%v while handling login", err))
-			}
-
-			l.await <- c
+	case 0x01: //status
+		if err := l.handleStatus(c); err != nil && l.status != nil {
+			c.Close(fmt.Errorf("%v while handling status", err))
 		}
-	} else {
-		c.Close(fmt.Errorf("unknown initial packet"))
+
+		c.Close(nil)
+
+	case 0x02:
+		if err := l.handleLogin(c); err != nil {
+			c.Close(fmt.Errorf("%v while handling login", err))
+		} else {
+			if l.compressionThreshold != -1 {
+				c.enableCompression(l.compressionThreshold)
+			}
+
+			if c.SendPacket(&packet.LoginSuccess{UUID: c.Info.UUID, Username: c.Info.Name}) != nil {
+				c.Close(fmt.Errorf("%v while sending login success packet in login", err))
+			} else {
+				c.pool = &basicPool{}
+				l.await <- c
+			}
+		}
 	}
 }
 
 func (l *Listener) handleStatus(c *Conn) error {
-	c.pool = protocol.NewPool([]packet.Packet{
-		0x00: &packet.Request{},
-		0x01: &packet.Ping{},
-	})
-	for {
-		p, err := c.ReadPacket()
-		if err != nil {
-			return err
-		}
-
-		switch pk := p.(type) {
-
-		case *packet.Request:
-			if err = c.WritePacket(&packet.Response{JSON: l.status.json()}, true); err != nil {
-				return fmt.Errorf("%v writing response packet", err)
-			}
-
-		case *packet.Ping:
-			return c.WritePacket(&packet.Pong{Payload: pk.Payload}, true)
-		}
+	var rq packet.Request
+	if err := c.DecodePacket(&rq); err != nil {
+		return err
 	}
+
+	if err := c.SendPacket(&packet.Response{JSON: l.status.json()}); err != nil {
+		return fmt.Errorf("%v writing response packet", err)
+	}
+
+	var pg packet.Ping
+	if err := c.DecodePacket(&pg); err != nil {
+		return fmt.Errorf("%v decoding ping packet", err)
+	}
+
+	return c.SendPacket(&packet.Pong{Payload: pg.Payload})
 }
 
 func (l *Listener) handleLogin(c *Conn) error {
-	c.pool = protocol.NewPool([]packet.Packet{
-		0x00: &packet.LoginStart{},
-		0x01: &packet.EncryptionResponse{},
-	})
+	var ls packet.LoginStart
+	if err := c.DecodePacket(&ls); err != nil {
+		return err
+	}
+
+	if l.key == nil {
+		var uuid [16]byte
+		_, _ = rand.Read(uuid[:])
+		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
+		return nil
+	}
+
+	key, err := x509.MarshalPKIXPublicKey(&l.key.PublicKey)
+	if err != nil {
+		return err
+	}
 
 	token := make([]byte, 8)
-	for {
-		p, err := c.ReadPacket()
-		if err != nil {
-			return err
-		}
+	_, _ = rand.Read(token)
 
-		switch pk := p.(type) {
-
-		case *packet.LoginStart:
-			var uuid [16]byte
-			_, _ = rand.Read(uuid[:])
-			c.Info = &player.Info{UUID: uuid, Name: pk.Name}
-
-			if l.key == nil {
-				return nil
-			}
-
-			key, err := x509.MarshalPKIXPublicKey(&l.key.PublicKey)
-			if err != nil {
-				return err
-			}
-
-			_, _ = rand.Read(token)
-
-			if err = c.WritePacket(&packet.EncryptionRequest{PublicKey: key, VerifyToken: token}, true); err != nil {
-				return err
-			}
-
-		case *packet.EncryptionResponse:
-			var (
-				sharedSecret, verifyToken []byte
-			)
-			if sharedSecret, err = l.key.Decrypt(nil, pk.SharedSecret, nil); err != nil {
-				return err
-			}
-
-			if verifyToken, err = l.key.Decrypt(nil, pk.VerifyToken, nil); err != nil {
-				return err
-			}
-
-			if bytes.Equal(verifyToken, token) == false {
-				//todo send disconnect packet
-				return fmt.Errorf("failed to verify token")
-			}
-
-			block, err := aes.NewCipher(sharedSecret)
-			if err != nil {
-				return err
-			}
-			c.enableEncryption(block, sharedSecret)
-
-			loginHash, err := l.generateHash(sharedSecret)
-			if err != nil {
-				return err
-			}
-
-			r, err := http.DefaultClient.Get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + c.Info.Name + "&serverId=" + loginHash)
-			if err != nil {
-				return fmt.Errorf("%v getting player data", err)
-			}
-
-			var data struct {
-				Id         string `json:"id"`
-				Name       string `json:"name"`
-				Properties []struct {
-					Name      string `json:"name"`
-					Value     string `json:"value"`
-					Signature string `json:"signature"`
-				} `json:"properties"`
-			}
-
-			if err = json.NewDecoder(r.Body).Decode(&data); err != nil && err != io.EOF {
-				return err
-			}
-			_ = r.Body.Close()
-
-			uuid, err := hex.DecodeString(data.Id)
-			if err != nil {
-				return err
-			}
-
-			c.Info = &player.Info{Name: data.Name, Properties: []struct {
-				Name      string
-				Value     string
-				Signature string
-			}(data.Properties)}
-
-			if n := copy(c.Info.UUID[:], uuid); n != 16 {
-				return fmt.Errorf("expected 16 bytes from uuid got %v", n)
-			}
-
-		}
+	if err = c.SendPacket(&packet.EncryptionRequest{PublicKey: key, VerifyToken: token}); err != nil {
+		return err
 	}
+
+	var encryptResp packet.EncryptionResponse
+	if err = c.DecodePacket(&encryptResp); err != nil {
+		return err
+	}
+
+	var (
+		sharedSecret, verifyToken []byte
+	)
+	if sharedSecret, err = l.key.Decrypt(nil, encryptResp.SharedSecret, nil); err != nil {
+		return err
+	}
+
+	if verifyToken, err = l.key.Decrypt(nil, encryptResp.VerifyToken, nil); err != nil {
+		return err
+	}
+
+	if bytes.Equal(verifyToken, token) == false {
+		return fmt.Errorf("failed to verify token")
+	}
+
+	block, err := aes.NewCipher(sharedSecret)
+	if err != nil {
+		return err
+	}
+	c.enableEncryption(block, sharedSecret)
+
+	loginHash, err := l.generateHash(sharedSecret)
+	if err != nil {
+		return err
+	}
+
+	r, err := http.DefaultClient.Get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ls.Name + "&serverId=" + loginHash)
+	if err != nil {
+		return fmt.Errorf("%v getting player data", err)
+	}
+
+	var data struct {
+		Id         string `json:"id"`
+		Name       string `json:"name"`
+		Properties []struct {
+			Name      string `json:"name"`
+			Value     string `json:"value"`
+			Signature string `json:"signature"`
+		} `json:"properties"`
+	}
+
+	if err = json.NewDecoder(r.Body).Decode(&data); err != nil && err != io.EOF {
+		return err
+	}
+	_ = r.Body.Close()
+
+	uuid, err := hex.DecodeString(data.Id)
+	if err != nil {
+		return err
+	}
+
+	c.Info = &player.Info{Name: data.Name, Properties: []struct {
+		Name      string
+		Value     string
+		Signature string
+	}(data.Properties)}
+
+	if n := copy(c.Info.UUID[:], uuid); n != 16 {
+		return fmt.Errorf("expected 16 bytes from uuid got %v", n)
+	}
+	return nil
 }
 
 func (l *Listener) Accept() (*Conn, error) {
 	c, ok := <-l.await
-
 	if ok == false {
 		if l.err != nil {
 			return nil, l.err

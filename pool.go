@@ -4,8 +4,18 @@ import (
 	"github.com/aimjel/minecraft/packet"
 )
 
-var handshakePool = map[int32]func() packet.Packet{
-	0x00: func() packet.Packet { return &packet.Handshake{} },
+type Pool interface {
+	Get(id int32) packet.Packet
+}
+
+type basicPool struct{}
+
+func (b basicPool) Get(id int32) packet.Packet {
+	if fn, ok := serverBoundPlayPool[id]; ok {
+		return fn()
+	}
+
+	return nil
 }
 
 var serverBoundPlayPool = map[int32]func() packet.Packet{
@@ -26,4 +36,19 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 
 	0x2E: func() packet.Packet { return &packet.PlayerBlockPlacement{} },
 	0x2F: func() packet.Packet { return &packet.UseItem{} },
+}
+
+type clientLoginPool struct{}
+
+func (c clientLoginPool) Get(id int32) packet.Packet {
+	switch id {
+
+	case 0x01:
+		return &packet.EncryptionRequest{}
+
+	case 0x02:
+		return &packet.LoginSuccess{}
+	}
+
+	return nil
 }

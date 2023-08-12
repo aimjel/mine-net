@@ -1,5 +1,7 @@
 package chat
 
+import "encoding/json"
+
 type Message struct {
 	Text string `json:"text"`
 
@@ -55,6 +57,11 @@ func NewMessage(s string) (m Message) {
 	}
 
 	return
+}
+
+func (m *Message) String() string {
+	v, _ := json.Marshal(m)
+	return string(v)
 }
 
 func styles(b byte, msg *Message) bool {

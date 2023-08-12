@@ -1,94 +1,129 @@
 package protocol
 
 import (
+	"bytes"
+	"crypto/cipher"
 	"fmt"
 	"github.com/aimjel/minecraft/protocol/crypto"
 	"io"
 )
 
-// Reader is a buffer reader with decryption built-in
 type Reader struct {
 	rd io.Reader
-
-	dec *crypto.CFB8
 
 	buf []byte
 
 	r, w int
+
+	cipher *crypto.CFB8
 }
 
-func NewReader(r io.Reader, size int) *Reader {
-	if size == 0 {
-		size = 4096
-	}
-
-	return &Reader{
-		rd:  r,
-		buf: make([]byte, size),
-	}
+func NewReader(r io.Reader) *Reader {
+	return &Reader{rd: r, buf: make([]byte, 4096)}
 }
 
-// len returns the number of unread bytes
-func (rd *Reader) len() int {
-	return rd.w - rd.r
+func (r *Reader) EnableDecryption(block cipher.Block, iv []byte) {
+	r.cipher = crypto.NewCFB8(block, iv, true)
 }
 
-func (rd *Reader) available() int {
-	return len(rd.buf) - rd.w
+// reset the reader and writer index to 0 so there's more space to write into
+func (r *Reader) reset() {
+	//should only be called if the readers index is the same as the writers.
+	//if there's nothing to read then we can reset the reader and writer pointers
+	//to the beginning of the slice so there's more space to write into.
+	r.r, r.w = 0, 0
 }
 
-// grow makes sure there's enough space for n bytes
-func (rd *Reader) grow(n int) {
-	if n < len(rd.buf)-rd.len() {
-		rd.w, rd.r = copy(rd.buf, rd.buf[rd.r:rd.w]), 0
-	} else {
-		b := make([]byte, rd.len()+n)
-		rd.w, rd.r = copy(b, rd.buf[rd.r:rd.w]), 0
-		rd.buf = b
-	}
+// len returns the number of unread bytes in the buffer
+func (r *Reader) len() int {
+	return r.w - r.r
 }
 
-// read data into b and performs decryption if needed
-func (rd *Reader) fill() error {
-
-	if rd.r > 0 {
-		//slides the unread bytes to the front
-		rd.w = copy(rd.buf, rd.buf[rd.r:rd.w])
-		rd.r = 0
+// fill the buffer up
+func (r *Reader) fill() error {
+	//shifts the unread bytes to the front
+	if r.r != 0 && r.r < r.w {
+		r.w = copy(r.buf, r.buf[r.r:r.w])
+		r.r = 0
 	}
 
-	n, err := rd.rd.Read(rd.buf[rd.w:])
-	if err != nil {
-		return err
-	}
+	x := 1
+	for x > 0 { //Read till at least one byte has been Read
+		n, err := r.rd.Read(r.buf[r.w:])
+		if err != nil {
+			return err
+		}
 
-	rd.w += n
+		//decrypts the data
+		if r.cipher != nil {
+			r.cipher.XORKeyStream(r.buf[r.w:r.w+n], r.buf[r.w:r.w+n])
+		}
 
-	if rd.dec != nil {
-		rd.dec.XORKeyStream(rd.buf[rd.w-n:rd.w], rd.buf[rd.w-n:rd.w])
+		r.w += n
+		x -= n
 	}
 
 	return nil
 }
 
-func (rd *Reader) readByte() (byte, error) {
-	if rd.r == rd.w {
-		if err := rd.fill(); err != nil {
+func (r *Reader) writeTo(n int, b *bytes.Buffer) error {
+	if availableSpace := len(r.buf) - r.r; n > availableSpace {
+		for n > 0 {
+			x, err := r.Read(b.Bytes()[:n])
+			if err != nil {
+				return err
+			}
+
+			n -= x
+		}
+
+		return nil
+	}
+
+	for r.len() < n {
+		if err := r.fill(); err != nil {
+			return err
+		}
+		fmt.Println("reading")
+	}
+
+	*b = *bytes.NewBuffer(r.buf[r.r : r.r+n])
+	r.r += n
+	return nil
+}
+
+func (r *Reader) Read(p []byte) (int, error) {
+	if r.r == r.w {
+		r.reset()
+		if err := r.fill(); err != nil {
 			return 0, err
 		}
 	}
 
-	b := rd.buf[rd.r]
-	rd.r++
+	n := copy(p, r.buf[r.r:r.w])
+	r.r += n
 
+	return n, nil
+}
+
+func (r *Reader) ReadByte() (byte, error) {
+	if r.r == r.w {
+		r.reset()
+		if err := r.fill(); err != nil {
+			return 0, err
+		}
+	}
+
+	b := r.buf[r.r]
+	r.r++
 	return b, nil
 }
 
-func (rd *Reader) readVarInt() (int, error) {
+func (r *Reader) ReadVarInt() (int, error) {
 	var ux uint32
 
 	for i := 0; i < 35; i += 7 {
-		b, err := rd.readByte()
+		b, err := r.ReadByte()
 		if err != nil {
 			return 0, err
 		}
@@ -101,10 +136,4 @@ func (rd *Reader) readVarInt() (int, error) {
 	}
 
 	return 0, fmt.Errorf("var-int overflows 32-bit integer")
-}
-
-func (rd *Reader) next(n int) []byte {
-	p := rd.buf[rd.r : rd.r+n]
-	rd.r += n
-	return p
 }

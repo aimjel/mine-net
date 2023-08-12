@@ -33,27 +33,30 @@ func NewStatus(protocol, max int, desc string) *Status {
 	size := buf.Len() + 34 //34 for the favicon key and prepended info, including quotes and comma
 
 	b := bytes.NewBuffer(nil)
-	st.loadIcon(b)
+	if err := st.loadIcon(b); err != nil {
+		return st
+	}
 
 	if size+b.Len() < math.MaxInt16 {
 		st.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b.Bytes())
 	}
 
+	buf.Reset()
 	enc.Encode(s)
 	return st
 }
 
-func (s *Status) loadIcon(buf *bytes.Buffer) {
+func (s *Status) loadIcon(buf *bytes.Buffer) error {
 	f, err := os.Open("server-icon.png")
 	defer f.Close()
 	if err != nil {
-		return
+		return err
 	}
 
 	_, _ = f.Seek(0, 0)
 	m, err := png.Decode(f)
 	if err != nil {
-		return
+		return err
 	}
 
 	var e png.Encoder
@@ -63,6 +66,7 @@ func (s *Status) loadIcon(buf *bytes.Buffer) {
 		fmt.Printf("%v compressiong server icon", err)
 	}
 
+	return nil
 }
 
 func (s *Status) json() []byte {
@@ -92,5 +96,5 @@ type status struct {
 		} `json:"sample"`
 	} `json:"players"`
 	Description chat.Message `json:"description"`
-	Favicon     string       `json:"favicon"`
+	Favicon     string       `json:"favicon,omitempty"`
 }

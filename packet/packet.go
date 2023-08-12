@@ -26,3 +26,19 @@ func calculateVarIntLength(x []int32) (n int) {
 
 	return n
 }
+
+type Unknown struct {
+	Id int32
+}
+
+func (u Unknown) ID() int32 {
+	return u.Id
+}
+
+func (u Unknown) Decode(r *Reader) error {
+	return nil
+}
+
+func (u Unknown) Encode(w Writer) error {
+	return nil
+}

@@ -1,52 +1,86 @@
 package protocol
 
 import (
+	"bytes"
+	"compress/zlib"
 	"crypto/cipher"
 	"fmt"
-	"github.com/aimjel/minecraft/protocol/crypto"
 	"io"
 )
 
-const maxPacketLength = (1 << 21) - 1 //2mb
+const MaxPacket = 1 << 21
 
 type Decoder struct {
-	rd *Reader
+	r *Reader
 
-	//todo zlib decompressor
+	decompressor io.ReadCloser
 
-	compressionThreshold int
+	threshold int
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{rd: NewReader(r, 0)}
+	return &Decoder{r: NewReader(r), threshold: -1}
 }
 
-func (dec *Decoder) EnableDecryption(b cipher.Block, sharedSecret []byte) {
-	dec.rd.dec = crypto.NewCFB8(b, sharedSecret, true)
+func (dec *Decoder) EnableDecryption(block cipher.Block, iv []byte) {
+	dec.r.EnableDecryption(block, iv)
 }
 
-//todo work on new decode packet system
+// EnableDecompression Enables zlib decompression
+func (dec *Decoder) EnableDecompression() {
+	dec.decompressor, _ = zlib.NewReader(bytes.NewBuffer([]byte{0x78, 0x9c}))
+	dec.threshold = 0 //doesn't actually do anything just allows the check to go through
+}
 
+// DecodePacket reads from the underlying reader and returns a packet's payload.
+// The slice returned is valid until the next call.
 func (dec *Decoder) DecodePacket() ([]byte, error) {
-	length, err := dec.rd.readVarInt()
+	pkLen, err := dec.r.ReadVarInt()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v reading packet length")
 	}
 
-	if length > maxPacketLength || length == 0 {
-		return nil, fmt.Errorf("invalid packet length")
+	if pkLen > MaxPacket || pkLen == 0 {
+		return nil, fmt.Errorf("invalid packet length of %v", pkLen)
 	}
 
-	//make sure there's space for the packet
-	dec.rd.grow(length)
-
-	for length > dec.rd.len() {
-		if err = dec.rd.fill(); err != nil {
-			return nil, err
+	if dec.threshold != -1 {
+		dataLength, err := dec.r.ReadVarInt()
+		if err != nil {
+			return nil, fmt.Errorf("%v reading data length")
 		}
+
+		if dataLength != 0 {
+			return dec.decompress(dataLength)
+		}
+
+		pkLen--
 	}
 
-	//todo decompression
+	buf := buffers.Get(pkLen)
+	defer buffers.Put(buf)
 
-	return dec.rd.next(length), nil
+	err = dec.r.writeTo(pkLen, buf)
+
+	return buf.Bytes()[:pkLen], err
+}
+
+func (dec *Decoder) decompress(len int) ([]byte, error) {
+	if err := dec.decompressor.(zlib.Resetter).Reset(dec.r, nil); err != nil {
+		return nil, fmt.Errorf("%v resetting decompresor", err)
+	}
+
+	buf := buffers.Get(len)
+	defer buffers.Put(buf)
+
+	n, err := dec.decompressor.Read(buf.Bytes()[:len])
+	if err != nil && n != len {
+		return nil, fmt.Errorf("%v decompressing payload", err)
+	}
+
+	if n != len {
+		return nil, fmt.Errorf("decompressed an incorrect amount of data")
+	}
+
+	return buf.Bytes()[:n], nil
 }
