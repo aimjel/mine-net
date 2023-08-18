@@ -17,13 +17,14 @@ type Encoder struct {
 
 	threshold int
 
-	written int
+	headerSize int
 }
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		buf:       bytes.NewBuffer(make([]byte, 0, 4096)),
-		threshold: -1,
+		buf:        bytes.NewBuffer(make([]byte, 0, 4096)),
+		threshold:  -1,
+		headerSize: 3, //max pk length in bytes
 	}
 }
 
@@ -34,12 +35,13 @@ func (enc *Encoder) EnableEncryption(block cipher.Block, iv []byte) {
 func (enc *Encoder) EnableCompression(threshold int) {
 	enc.compressor = zlib.NewWriter(nil)
 	enc.threshold = threshold
+	enc.headerSize = 3 + 5 //max pk length and data length in bytes
 }
 
 func (enc *Encoder) Encode(pk packet.Packet) error {
-	tmp := bytes.NewBuffer(enc.buf.Bytes()[enc.written:enc.buf.Cap()][:0])
+	start := enc.buf.Len() //records the start of the packet data
 
-	pw := packet.NewWriter(tmp)
+	pw := packet.NewWriter(enc.buf)
 
 	if err := pw.VarInt(pk.ID()); err != nil {
 		return err
@@ -49,96 +51,58 @@ func (enc *Encoder) Encode(pk packet.Packet) error {
 		return err
 	}
 
+	pkLen := enc.buf.Len() - start
+	enc.buf.Grow(enc.headerSize) //ensures the max header can fit
+
+	//makes room for the header
+	copy(enc.buf.Bytes()[start+enc.headerSize:enc.buf.Cap()], enc.buf.Bytes()[start:start+pkLen])
+	start += enc.headerSize //updates the position where the data starts
+	enc.buf.Truncate(enc.buf.Len() - (pkLen))
+
 	dataLength := -1
 	if enc.threshold != -1 {
 		dataLength = 0
 
-		if tmp.Len() >= enc.threshold {
-			return enc.compress(tmp)
+		if pkLen >= enc.threshold {
+			return enc.compress(bytes.NewBuffer(enc.buf.Bytes()[start : start+pkLen]))
 		}
 	}
 
-	enc.writeHeader(tmp, tmp.Len(), dataLength)
+	enc.writeHeader(pkLen, dataLength)
+	enc.buf.Write(enc.buf.Bytes()[start : start+pkLen])
+
 	return nil
 }
 
 // compresses the bytes of the buffer object passed
 func (enc *Encoder) compress(payload *bytes.Buffer) error {
-	//default objects for compressing
-	uncompressedLength := payload.Len()
-	localBuf := bytes.NewBuffer(payload.Bytes()[:0])
+	buf := buffers.Get(payload.Len())
+	defer buffers.Put(buf)
 
-	//go uses a default window size of 32768 for zlib
-	//if the data length is over the window size we should
-	//pull a new buffer so data isn't overwritten
-	if payload.Len() >= 32768 {
-		// Formula: Compressed Size = Raw Data Size + Raw Data Size / 1000 + 12 bytes
-		estimatedSize := payload.Len() + payload.Len()/1000 + 12
-		localBuf = bytes.NewBuffer(buffers.Get(estimatedSize + enc.buf.Len()).Bytes()[:0])
-		defer buffers.Put(localBuf)
+	enc.compressor.Reset(buf)
 
-		//the payload is going be written to a new buffer not equal to the one in the encoder struct
-		//we need to copy the enc.buf.Bytes() into the new buffer and free the enc.buffer
-		localBuf.Write(enc.buf.Bytes()[:enc.written])
-		enc.buf = localBuf
-		buffers.Put(enc.buf)
-	}
-	enc.compressor.Reset(localBuf)
-
-	localBuf.Grow(2) //guarantee space for the zlib headers
-	copy(localBuf.Bytes()[2:localBuf.Cap()], localBuf.Bytes()[:localBuf.Cap()])
-
-	_, err := enc.compressor.Write(payload.Bytes()[2 : payload.Len()+2])
-	if err != nil {
+	if _, err := enc.compressor.Write(payload.Bytes()); err != nil {
 		return err
 	}
 
-	if err = enc.compressor.Flush(); err != nil {
+	if err := enc.compressor.Flush(); err != nil {
 		return err
 	}
 
-	pkLen := localBuf.Len() + varIntSize(uncompressedLength)
-	dataLen := uncompressedLength
-	enc.writeHeader(localBuf, pkLen, dataLen)
+	enc.writeHeader(buf.Len()+varIntSize(payload.Len()), payload.Len())
+
+	enc.buf.Write(buf.Bytes())
 	return nil
 }
 
 func (enc *Encoder) Flush() []byte {
-	n := enc.written
-	enc.written = 0
+	data := enc.buf.Bytes()
 	enc.buf.Reset()
-	data := enc.buf.Bytes()[:n]
 	if enc.cipher != nil {
 		enc.cipher.XORKeyStream(data, data)
 	}
 
 	return data
-}
-
-func (enc *Encoder) writeHeader(b *bytes.Buffer, pkLen, dataLen int) {
-	headerLength := varIntSize(pkLen)
-
-	if dataLen != -1 {
-		headerLength += varIntSize(dataLen)
-	}
-
-	b.Grow(headerLength)
-	sl := b.Bytes()[:b.Len()+headerLength]
-	copy(sl[headerLength:], sl[:b.Len()])
-
-	b.Reset()
-
-	writeVarInt(b, pkLen)
-	if dataLen != -1 {
-		writeVarInt(b, dataLen)
-	}
-
-	enc.written += len(sl)
-
-	if b.Cap() >= enc.buf.Cap() {
-		buffers.Put(enc.buf)
-		enc.buf = b
-	}
 }
 
 func writeVarInt(b *bytes.Buffer, n int) {
@@ -150,6 +114,13 @@ func writeVarInt(b *bytes.Buffer, n int) {
 	}
 
 	b.WriteByte(byte(ux))
+}
+
+func (enc *Encoder) writeHeader(pkLen, dataLen int) {
+	writeVarInt(enc.buf, pkLen)
+	if dataLen != -1 {
+		writeVarInt(enc.buf, dataLen)
+	}
 }
 
 // varIntSize returns the number of bytes n takes up

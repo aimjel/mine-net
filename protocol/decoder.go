@@ -37,7 +37,7 @@ func (dec *Decoder) EnableDecompression() {
 func (dec *Decoder) DecodePacket() ([]byte, error) {
 	pkLen, err := dec.r.ReadVarInt()
 	if err != nil {
-		return nil, fmt.Errorf("%v reading packet length")
+		return nil, fmt.Errorf("%v reading packet length", err)
 	}
 
 	if pkLen > MaxPacket || pkLen == 0 {
@@ -47,7 +47,7 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 	if dec.threshold != -1 {
 		dataLength, err := dec.r.ReadVarInt()
 		if err != nil {
-			return nil, fmt.Errorf("%v reading data length")
+			return nil, fmt.Errorf("%v reading data length", err)
 		}
 
 		if dataLength != 0 {
