@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
+	"github.com/aimjel/minecraft/protocol"
 	"io"
 	"net"
 	"net/http"
@@ -158,7 +158,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 	if l.key == nil {
 		var uuid [16]byte
 		_, _ = rand.Read(uuid[:])
-		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
+		c.Info = &protocol.PlayerInfo{UUID: uuid, Name: ls.Name}
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	c.Info = &player.Info{Name: data.Name, Properties: []struct {
+	c.Info = &protocol.PlayerInfo{Name: data.Name, Properties: []struct {
 		Name      string
 		Value     string
 		Signature string

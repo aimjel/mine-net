@@ -1,6 +1,6 @@
-package player
+package protocol
 
-type Info struct {
+type PlayerInfo struct {
 	UUID [16]byte
 
 	Name string
