@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/player"
 	"github.com/aimjel/minecraft/protocol"
 	"net"
 	"sync"
@@ -15,16 +16,13 @@ type Conn struct {
 	dec *protocol.Decoder
 
 	enc *protocol.Encoder
-	//encMu protects the enc from data races if two goroutines try to write a packet
-	encMu sync.Mutex
 
 	pool Pool
 
-	Info *protocol.PlayerInfo
+	Info *player.Info
 
-	uuid [16]byte
-
-	name string
+	//encMu protects the enc from data races if two goroutines try to write a packet
+	encMu sync.Mutex
 }
 
 func newConn(c *net.TCPConn) *Conn {

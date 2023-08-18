@@ -1,12 +1,12 @@
 package packet
 
 import (
-	"github.com/aimjel/minecraft/protocol"
+	"github.com/aimjel/minecraft/player"
 )
 
 type PlayerInfo struct {
 	Action  int32
-	Players []protocol.PlayerInfo
+	Players []player.Info
 }
 
 func (i *PlayerInfo) ID() int32 {
@@ -20,7 +20,7 @@ func (i *PlayerInfo) Decode(r *Reader) error {
 		return err
 	}
 
-	i.Players = make([]protocol.PlayerInfo, length)
+	i.Players = make([]player.Info, length)
 
 	switch i.Action {
 
