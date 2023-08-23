@@ -2,7 +2,7 @@ package packet
 
 import "errors"
 
-var NotImplemneted = errors.New("a packet field has not been implemented")
+var NotImplemented = errors.New("a packet field has not been implemented")
 
 type Packet interface {
 	ID() int32
@@ -35,10 +35,10 @@ func (u Unknown) ID() int32 {
 	return u.Id
 }
 
-func (u Unknown) Decode(r *Reader) error {
+func (u Unknown) Decode(*Reader) error {
 	return nil
 }
 
-func (u Unknown) Encode(w Writer) error {
+func (u Unknown) Encode(Writer) error {
 	return nil
 }

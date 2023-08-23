@@ -30,7 +30,7 @@ func (p *Particle) Encode(w Writer) error {
 	_ = w.Float32(p.ParticleData)
 	_ = w.Int32(p.ParticleCount)
 	if p.Data {
-		return NotImplemneted
+		return NotImplemented
 	}
 	return nil
 }

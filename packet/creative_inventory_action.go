@@ -22,7 +22,7 @@ func (a *CreateInventoryAction) Encode(w Writer) error {
 		var nbt uint8
 		w.Uint8(nbt)
 		if nbt != 0 {
-			return NotImplemneted
+			return NotImplemented
 		}
 	}
 
@@ -39,7 +39,7 @@ func (a *CreateInventoryAction) Decode(r *Reader) error {
 		var nbt uint8
 		r.Uint8(&nbt)
 		if nbt != 0 {
-			return NotImplemneted
+			return NotImplemented
 		}
 	}
 

@@ -9,7 +9,7 @@ import (
 func main() {
 	lc := minecraft.ListenConfig{
 		OnlineMode:           true,
-		CompressionThreshold: 0, //compresses everything!
+		CompressionThreshold: 256, //compresses everything!
 		Status:               minecraft.NewStatus(756, 10, "someone had todo it"),
 	}
 

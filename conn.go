@@ -21,7 +21,7 @@ type Conn struct {
 
 	Info *player.Info
 
-	//encMu protects the enc from data races if two goroutines try to write a packet
+	//encMu protects the Encoder from data races if two goroutines try to write a packet
 	encMu sync.Mutex
 }
 

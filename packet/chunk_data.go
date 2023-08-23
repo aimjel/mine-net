@@ -13,10 +13,10 @@ type ChunkData struct {
 	Biomes []int32
 
 	Sections []struct {
-		Palette struct {
-			BitsPerEntry uint8
-			Entries      []int32
-		}
+		BitsPerEntry uint8
+		//Entries global ids
+		Entries []int32
+
 		BlockStates []int64
 	}
 
@@ -50,7 +50,7 @@ func (d ChunkData) Encode(w Writer) error {
 		dataLength += 2
 		dataLength++
 
-		lengthEntries := int32(calculateVarIntLength(s.Palette.Entries))
+		lengthEntries := int32(calculateVarIntLength(s.Entries))
 
 		dataLength += int32(calculateVarIntLength([]int32{lengthEntries}))
 		dataLength += lengthEntries
@@ -69,9 +69,9 @@ func (d ChunkData) Encode(w Writer) error {
 	for _, s := range d.Sections {
 		_ = w.Uint16(5000) //TODO: Implement proper block count
 
-		_ = w.Uint8(s.Palette.BitsPerEntry)
+		_ = w.Uint8(s.BitsPerEntry)
 
-		_ = w.VarIntArray(s.Palette.Entries)
+		_ = w.VarIntArray(s.Entries)
 
 		_ = w.Int64Array(s.BlockStates)
 	}

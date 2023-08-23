@@ -68,7 +68,12 @@ func (enc *Encoder) Encode(pk packet.Packet) error {
 		}
 	}
 
-	enc.writeHeader(pkLen, dataLength)
+	if dataLength == 0 {
+		enc.writeHeader(pkLen+1, dataLength)
+	} else {
+		enc.writeHeader(pkLen, dataLength)
+	}
+
 	enc.buf.Write(enc.buf.Bytes()[start : start+pkLen])
 
 	return nil

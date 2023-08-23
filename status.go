@@ -81,7 +81,7 @@ func versionName(protocol int) string {
 	}[protocol]
 }
 
-// status represents the json response in struct for more performance
+// status represents the json response in struct form for better performance
 type status struct {
 	Version struct {
 		Name     string `json:"name"`
