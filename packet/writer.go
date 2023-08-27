@@ -32,6 +32,23 @@ func (w *Writer) Bool(x bool) error {
 func (w *Writer) Uint8(x uint8) error {
 	return w.wr.WriteByte(x)
 }
+func (w *Writer) Uint16(x uint16) error {
+	if err := w.wr.WriteByte(byte(x >> 8)); err != nil {
+		return err
+	}
+
+	return w.wr.WriteByte(byte(x))
+}
+
+func (w *Writer) Uint32(x uint32) error {
+	_, err := w.wr.Write([]byte{byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+	return err
+}
+
+func (w *Writer) Uint64(x uint64) error {
+	_, err := w.wr.Write([]byte{byte(x >> 56), byte(x >> 48), byte(x >> 40), byte(x >> 32), byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+	return err
+}
 
 func (w *Writer) Int8(x int8) error {
 	return w.wr.WriteByte(byte(x))
@@ -39,14 +56,6 @@ func (w *Writer) Int8(x int8) error {
 
 func (w *Writer) Int16(x int16) error {
 	return w.Uint16(uint16(x))
-}
-
-func (w *Writer) Uint16(x uint16) error {
-	if err := w.wr.WriteByte(byte(x >> 8)); err != nil {
-		return err
-	}
-
-	return w.wr.WriteByte(byte(x))
 }
 
 func (w *Writer) Int32(x int32) error {

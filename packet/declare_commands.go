@@ -57,10 +57,10 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 		//argument node type
 		case 2:
 			_ = r.String(&n.Name)
-			_ = r.String(&n.ParserID)
+			_ = r.VarInt(&n.ParserID)
 			switch n.ParserID {
 
-			case "brigadier:float":
+			case 1: //float
 				_ = r.Uint8(&n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = r.Float32((*float32)(unsafe.Pointer(&n.Properties.Min)))
@@ -69,7 +69,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 					_ = r.Float32((*float32)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:double":
+			case 2: //double
 				_ = r.Uint8(&n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = r.Float64((*float64)(unsafe.Pointer(&n.Properties.Min)))
@@ -78,7 +78,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 					_ = r.Float64((*float64)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:integer":
+			case 3: //integer
 				_ = r.Uint8(&n.Properties.Flags)
 				fmt.Printf("brigadier:integer flags %08b\n", n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
@@ -88,7 +88,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 					_ = r.Int32((*int32)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:long":
+			case 4: //long
 				_ = r.Uint8(&n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = r.Int64((*int64)(unsafe.Pointer(&n.Properties.Min)))
@@ -97,13 +97,13 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 					_ = r.Int64((*int64)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:string":
+			case 5: //string
 				_ = r.Uint8(&n.Properties.Flags) //suppose to be var-int type but the max value is 2 bits
 
-			case "minecraft:entity":
+			case 6: //entity
 				_ = r.Uint8(&n.Properties.Flags)
 
-			case "minecraft:score_holder":
+			case 29: //score holder
 				_ = r.Uint8(&n.Properties.Flags)
 			}
 		}
@@ -138,10 +138,10 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 		case 2:
 			_ = w.String(n.Name)
-			_ = w.String(n.ParserID)
+			_ = w.VarInt(n.ParserID)
 			switch n.ParserID {
 
-			case "brigadier:float":
+			case 1: //float
 				_ = w.Uint8(n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = w.Float32(*(*float32)(unsafe.Pointer(&n.Properties.Min)))
@@ -150,7 +150,7 @@ func (d *DeclareCommands) Encode(w Writer) error {
 					_ = w.Float32(*(*float32)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:double":
+			case 2: //double
 				_ = w.Uint8(n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = w.Float64(*(*float64)(unsafe.Pointer(&n.Properties.Min)))
@@ -159,7 +159,7 @@ func (d *DeclareCommands) Encode(w Writer) error {
 					_ = w.Float64(*(*float64)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:integer":
+			case 3: //integer
 				_ = w.Uint8(n.Properties.Flags)
 				fmt.Printf("brigadier:integer flags %08b\n", n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
@@ -169,7 +169,7 @@ func (d *DeclareCommands) Encode(w Writer) error {
 					_ = w.Int32(*(*int32)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:long":
+			case 4: //long
 				_ = w.Uint8(n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = w.Int64(*(*int64)(unsafe.Pointer(&n.Properties.Min)))
@@ -178,13 +178,13 @@ func (d *DeclareCommands) Encode(w Writer) error {
 					_ = w.Int64(*(*int64)(unsafe.Pointer(&n.Properties.Max)))
 				}
 
-			case "brigadier:string":
+			case 5: //string
 				_ = w.Uint8(n.Properties.Flags) //suppose to be var-int type but the max value is 2 bits
 
-			case "minecraft:entity":
+			case 6: //entity
 				_ = w.Uint8(n.Properties.Flags)
 
-			case "minecraft:score_holder":
+			case 29: //score holder
 				_ = w.Uint8(n.Properties.Flags)
 			}
 		}
@@ -202,7 +202,7 @@ type Node struct {
 	Children     []int32 `json:",omitempty"`
 	RedirectNode int32   `json:",omitempty"`
 	Name         string  `json:",omitempty"`
-	ParserID     string  `json:",omitempty"`
+	ParserID     int32   `json:",omitempty"`
 	Properties   struct {
 		Flags      uint8  `json:",omitempty"`
 		Min, Max   uint64 `json:",omitempty"` //min and max stores the bits of the actual data type

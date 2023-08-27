@@ -12,20 +12,25 @@ type JoinGame struct {
 	PreviousGameMode int8
 	DimensionNames   []string
 
-	//Dimension Codec & Dimension
+	//Registry codec
 
+	DimensionType       string
 	DimensionName       string
 	HashedSeed          int64
 	MaxPlayers          int32
 	ViewDistance        int32
+	SimulationDistance  int32
 	ReducedDebugInfo    bool
 	EnableRespawnScreen bool
 	IsDebug             bool
 	IsFlat              bool
+	DeathDimensionName  string
+	DeathLocation       uint64
+	PartialCooldown     int32
 }
 
 func (g JoinGame) ID() int32 {
-	return 0x26
+	return 0x28
 }
 
 func (g *JoinGame) Decode(r *Reader) error {
@@ -43,12 +48,24 @@ func (g JoinGame) Encode(w Writer) error {
 		_ = w.String(world)
 	}
 	_ = w.Nbt(dimensions)
+	_ = w.String(g.DimensionType)
 	_ = w.String(g.DimensionName)
 	_ = w.Int64(g.HashedSeed)
 	_ = w.VarInt(g.MaxPlayers)
 	_ = w.VarInt(g.ViewDistance)
+	_ = w.VarInt(g.SimulationDistance)
 	_ = w.Bool(g.ReducedDebugInfo)
 	_ = w.Bool(g.EnableRespawnScreen)
 	_ = w.Bool(g.IsDebug)
-	return w.Bool(g.IsFlat)
+	_ = w.Bool(g.IsFlat)
+
+	if g.DeathDimensionName != "" && g.DeathLocation != 0 {
+		_ = w.Bool(true)
+		_ = w.String(g.DeathDimensionName)
+		_ = w.Uint64(g.DeathLocation)
+	} else {
+		_ = w.Bool(false)
+	}
+
+	return w.VarInt(g.PartialCooldown)
 }

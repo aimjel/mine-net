@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"github.com/aimjel/minecraft"
 	"github.com/aimjel/minecraft/packet"
+	"time"
 )
 
 func main() {
 	lc := minecraft.ListenConfig{
 		OnlineMode:           true,
 		CompressionThreshold: 256, //compresses everything!
-		Status:               minecraft.NewStatus(756, 10, "someone had todo it"),
+		Status:               minecraft.NewStatus(763, 10, "someone had todo it"),
 	}
 
 	l, err := lc.Listen("localhost:25565")
@@ -26,13 +27,30 @@ func main() {
 		}
 
 		if err := c.SendPacket(&packet.JoinGame{
-			DimensionNames: []string{"minecraft:overworld"},
-			DimensionName:  "minecraft:overworld",
+			GameMode:       1, //creative
+			DimensionNames: []string{"minecraft:the_end"},
+			DimensionType:  "minecraft:the_end",
+			DimensionName:  "earth:itsgoingblow",
 		}); err != nil {
 			c.Close(err)
 		}
 
-		if err := c.SendPacket(&packet.PlayerPositionLook{}); err != nil {
+		if err := c.SendPacket(&packet.SetDefaultSpawnPosition{}); err != nil {
+			c.Close(err)
+		}
+
+		time.Sleep(5 * time.Second)
+
+		if err := c.SendPacket(&packet.JoinGame{
+			GameMode:       1, //creative
+			DimensionNames: []string{"minecraft:overworld"},
+			DimensionType:  "minecraft:overworld",
+			DimensionName:  "earth:itsgoingblow",
+		}); err != nil {
+			c.Close(err)
+		}
+
+		if err := c.SendPacket(&packet.SetDefaultSpawnPosition{}); err != nil {
 			c.Close(err)
 		}
 	}

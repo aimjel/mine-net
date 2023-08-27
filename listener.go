@@ -121,7 +121,7 @@ func (l *Listener) handle(conn *net.TCPConn) {
 				c.enableCompression(l.compressionThreshold)
 			}
 
-			if c.SendPacket(&packet.LoginSuccess{UUID: c.Info.UUID, Username: c.Info.Name}) != nil {
+			if c.SendPacket(&packet.LoginSuccess{Info: *c.Info}) != nil {
 				c.Close(fmt.Errorf("%v while sending login success packet in login", err))
 			} else {
 				c.pool = &basicPool{}
