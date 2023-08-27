@@ -205,6 +205,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
+	fmt.Println("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ls.Name + "&serverId=" + loginHash)
 	r, err := http.DefaultClient.Get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ls.Name + "&serverId=" + loginHash)
 	if err != nil {
 		return fmt.Errorf("%v getting player data", err)
@@ -269,13 +270,8 @@ func (l *Listener) generateHash(sharedSecret []byte) (string, error) {
 	loginHash := h.Sum(nil)
 
 	neg := loginHash[0] >= 128
-
 	if neg {
-		for k, v := range loginHash {
-			loginHash[k] = ^v
-		}
-
-		loginHash[19] |= 0x01
+		twosComplement(loginHash)
 	}
 
 	hs := strings.TrimLeft(hex.EncodeToString(loginHash), "0")
@@ -284,4 +280,22 @@ func (l *Listener) generateHash(sharedSecret []byte) (string, error) {
 	}
 
 	return hs, nil
+}
+
+func twosComplement(p []byte) {
+	//invert all the bites
+	for k, v := range p {
+		p[k] = ^v
+	}
+
+	// Add 1
+	carry := byte(1)
+	for i := len(p) - 1; i >= 0; i-- {
+		p[i] += carry
+		carry = p[i] >> 8
+		p[i] &= 0xFF
+		if carry == 0 {
+			break
+		}
+	}
 }

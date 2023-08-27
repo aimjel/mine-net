@@ -39,6 +39,8 @@ func main() {
 			c.Close(err)
 		}
 
+		c.Close(nil)
+
 		time.Sleep(5 * time.Second)
 
 		if err := c.SendPacket(&packet.JoinGame{
