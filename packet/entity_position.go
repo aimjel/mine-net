@@ -7,7 +7,7 @@ type EntityPosition struct {
 }
 
 func (p EntityPosition) ID() int32 {
-	return 0x29
+	return 0x2B
 }
 
 func (p *EntityPosition) Decode(r *Reader) error {

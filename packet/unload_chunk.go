@@ -5,7 +5,7 @@ type UnloadChunk struct {
 }
 
 func (c UnloadChunk) ID() int32 {
-	return 0x1D
+	return 0x1E
 }
 
 func (c *UnloadChunk) Decode(r *Reader) error {

@@ -5,7 +5,7 @@ type KeepAlive struct {
 }
 
 func (a *KeepAlive) ID() int32 {
-	return 0x21
+	return 0x23
 }
 
 func (a *KeepAlive) Encode(w Writer) error {

@@ -8,7 +8,7 @@ type EntityPositionRotation struct {
 }
 
 func (r EntityPositionRotation) ID() int32 {
-	return 0x2A
+	return 0x2C
 }
 
 func (r *EntityPositionRotation) Decode(rd *Reader) error {

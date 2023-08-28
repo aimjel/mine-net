@@ -5,7 +5,7 @@ type DestroyEntities struct {
 }
 
 func (d DestroyEntities) ID() int32 {
-	return 0x3a
+	return 0x3E
 }
 
 func (d *DestroyEntities) Decode(r *Reader) error {

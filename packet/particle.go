@@ -14,7 +14,7 @@ func (p *Particle) ID() int32 {
 	return 0x24
 }
 
-func (e *Particle) Decode(r *Reader) error {
+func (p *Particle) Decode(r *Reader) error {
 	return nil
 }
 

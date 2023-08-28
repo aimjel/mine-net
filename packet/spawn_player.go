@@ -8,7 +8,7 @@ type SpawnPlayer struct {
 }
 
 func (p SpawnPlayer) ID() int32 {
-	return 0x04
+	return 0x03
 }
 
 func (p *SpawnPlayer) Decode(r *Reader) error {

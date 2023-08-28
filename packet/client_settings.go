@@ -8,10 +8,11 @@ type ClientSettings struct {
 	DisplayedSkinParts   uint8
 	MainHand             int32
 	DisableTextFiltering bool
+	AllowServerListings  bool
 }
 
 func (s ClientSettings) ID() int32 {
-	return 0x05
+	return 0x08
 }
 
 func (s *ClientSettings) Decode(r *Reader) error {
@@ -21,7 +22,9 @@ func (s *ClientSettings) Decode(r *Reader) error {
 	_ = r.Bool(&s.ChatColors)
 	_ = r.Uint8(&s.DisplayedSkinParts)
 	_ = r.VarInt(&s.MainHand)
-	return r.Bool(&s.DisableTextFiltering)
+	_ = r.Bool(&s.DisableTextFiltering)
+
+	return r.Bool(&s.AllowServerListings)
 }
 
 func (s ClientSettings) Encode(w Writer) error {
@@ -31,5 +34,6 @@ func (s ClientSettings) Encode(w Writer) error {
 	_ = w.Bool(s.ChatColors)
 	_ = w.Uint8(s.DisplayedSkinParts)
 	_ = w.VarInt(s.MainHand)
-	return w.Bool(s.DisableTextFiltering)
+	_ = w.Bool(s.DisableTextFiltering)
+	return w.Bool(s.AllowServerListings)
 }

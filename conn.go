@@ -1,7 +1,7 @@
 package minecraft
 
 import (
-	"crypto/cipher"
+	"crypto/aes"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/player"
@@ -126,9 +126,15 @@ func (c *Conn) FlushPackets() error {
 	return nil
 }
 
-func (c *Conn) enableEncryption(block cipher.Block, sharedSecret []byte) {
+func (c *Conn) enableEncryption(sharedSecret []byte) error {
+	block, err := aes.NewCipher(sharedSecret)
+	if err != nil {
+		return err
+	}
+
 	c.dec.EnableDecryption(block, sharedSecret)
 	c.enc.EnableEncryption(block, sharedSecret)
+	return nil
 }
 
 func (c *Conn) enableCompression(threshold int32) {

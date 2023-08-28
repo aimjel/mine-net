@@ -2,7 +2,6 @@ package minecraft
 
 import (
 	"bytes"
-	"crypto/aes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -49,7 +48,10 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 
 	var key *rsa.PrivateKey
 	if lc.OnlineMode {
-		key, _ = rsa.GenerateKey(rand.Reader, 1024)
+		key, err = rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	l := &Listener{
@@ -194,18 +196,15 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return fmt.Errorf("failed to verify token")
 	}
 
-	block, err := aes.NewCipher(sharedSecret)
-	if err != nil {
+	if err := c.enableEncryption(sharedSecret); err != nil {
 		return err
 	}
-	c.enableEncryption(block, sharedSecret)
 
 	loginHash, err := l.generateHash(sharedSecret)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ls.Name + "&serverId=" + loginHash)
 	r, err := http.DefaultClient.Get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ls.Name + "&serverId=" + loginHash)
 	if err != nil {
 		return fmt.Errorf("%v getting player data", err)
