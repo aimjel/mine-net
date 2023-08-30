@@ -41,14 +41,5 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 type clientLoginPool struct{}
 
 func (c clientLoginPool) Get(id int32) packet.Packet {
-	switch id {
-
-	case 0x01:
-		return &packet.EncryptionRequest{}
-
-	case 0x02:
-		return &packet.LoginSuccess{}
-	}
-
 	return nil
 }

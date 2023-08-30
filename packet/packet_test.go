@@ -2,6 +2,7 @@ package packet
 
 import (
 	"bytes"
+	"github.com/aimjel/minecraft/player"
 	"reflect"
 	"testing"
 )
@@ -49,4 +50,12 @@ func TestPacketEncode_Decode(t *testing.T) {
 		}
 		t.FailNow()
 	}
+}
+
+func TestPlayerInfoUpdate_Encode(t *testing.T) {
+	p := PlayerInfoUpdate{Actions: 63, Players: make([]player.Info, 1)}
+	if err := p.Encode(NewWriter(&b)); err != nil {
+		t.Fatal(err)
+	}
+
 }
