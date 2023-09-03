@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aimjel/minecraft/chat"
 	"image/png"
 	"math"
 	"os"
+
+	"github.com/aimjel/minecraft/chat"
 )
 
 type Version struct {
 	Protocol int
-	Text string
+	Text     string
 }
 
 type Status struct {
@@ -56,10 +57,10 @@ func NewStatus(version Version, max int, desc string) *Status {
 
 func (s *Status) loadIcon(buf *bytes.Buffer) error {
 	f, err := os.Open("server-icon.png")
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	_, _ = f.Seek(0, 0)
 	m, err := png.Decode(f)
@@ -112,4 +113,3 @@ type status struct {
 	Description chat.Message `json:"description"`
 	Favicon     string       `json:"favicon,omitempty"`
 }
-

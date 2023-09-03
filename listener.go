@@ -210,7 +210,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	if bytes.Equal(verifyToken, token) == false {
+	if !bytes.Equal(verifyToken, token) {
 		return fmt.Errorf("failed to verify token")
 	}
 
@@ -262,7 +262,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 func (l *Listener) Accept() (*Conn, error) {
 	c, ok := <-l.await
-	if ok == false {
+	if !ok {
 		if l.err != nil {
 			return nil, l.err
 		}
