@@ -23,9 +23,7 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 	for _, p := range i.Players {
 		_ = w.UUID(p.UUID)
 
-		switch {
-
-		case i.Actions&0x01 != 0:
+		if i.Actions&0x01 != 0 {
 			//add player
 			_ = w.String(p.Name)
 			_ = w.VarInt(int32(len(p.Properties)))
@@ -37,8 +35,9 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 					_ = w.String(v.Signature)
 				}
 			}
+		}
 
-		case i.Actions&0x02 != 0:
+		if i.Actions&0x02 != 0 {
 			//initialize chat
 			//has signature data
 			_ = w.Bool(false)
@@ -46,20 +45,24 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 			//expiry time
 			//public key
 			//signature
+		}
 
-		case i.Actions&0x04 != 0:
+		if i.Actions&0x04 != 0 {
 			//update game-mode
 			_ = w.VarInt(p.GameMode)
+		}
 
-		case i.Actions&0x08 != 0:
+		if i.Actions&0x08 != 0 {
 			//enables/disables the player on the player list
 			_ = w.Bool(p.Listed)
+		}
 
-		case i.Actions&0x10 != 0:
+		if i.Actions&0x10 != 0 {
 			//updates ping icon
 			_ = w.VarInt(p.Ping)
+		}
 
-		case i.Actions&0x20 != 0:
+		if i.Actions&0x20 != 0 {
 			//updates display name
 			_ = w.Bool(p.HasDisplayName)
 			if p.HasDisplayName {

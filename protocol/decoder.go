@@ -16,6 +16,8 @@ type Decoder struct {
 	decompressor io.ReadCloser
 
 	threshold int
+
+	putBack *bytes.Buffer
 }
 
 func NewDecoder(r io.Reader) *Decoder {
@@ -58,11 +60,12 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 	}
 
 	buf := buffers.Get(pkLen)
-	defer buffers.Put(buf)
+	err, putBack := dec.r.writeTo(buf, pkLen)
+	if putBack {
+		dec.putBack = buf
+	}
 
-	err = dec.r.writeTo(pkLen, buf)
-
-	return buf.Bytes()[:pkLen], err
+	return buf.Bytes(), nil
 }
 
 func (dec *Decoder) decompress(len int) ([]byte, error) {
@@ -83,4 +86,11 @@ func (dec *Decoder) decompress(len int) ([]byte, error) {
 	}
 
 	return buf.Bytes()[:n], nil
+}
+
+func (dec *Decoder) PutBufferBack() {
+	if dec.putBack != nil {
+		buffers.Put(dec.putBack)
+		dec.putBack = nil
+	}
 }

@@ -66,30 +66,32 @@ func (r *Reader) fill() error {
 	return nil
 }
 
-func (r *Reader) writeTo(n int, b *bytes.Buffer) error {
-	if availableSpace := len(r.buf) - r.r; n > availableSpace {
-		for n > 0 {
-			x, err := r.Read(b.Bytes()[:n])
+func (r *Reader) writeTo(b *bytes.Buffer, n int) (error, bool) {
+	if n > len(r.buf) {
+		var written int
+		for written < n {
+			nn, err := r.Read(b.Bytes()[written:n])
 			if err != nil {
-				return err
+				return err, true
 			}
 
-			n -= x
+			written += nn
 		}
 
-		return nil
+		b.Write(b.Bytes()[0:n])
+		return nil, true
 	}
 
 	for r.len() < n {
 		if err := r.fill(); err != nil {
-			return err
+			return err, false
 		}
-		fmt.Println("reading")
 	}
 
-	*b = *bytes.NewBuffer(r.buf[r.r : r.r+n])
+	buf := r.buf[r.r : r.r+n]
 	r.r += n
-	return nil
+	*b = *bytes.NewBuffer(buf)
+	return nil, false
 }
 
 func (r *Reader) Read(p []byte) (int, error) {
