@@ -11,6 +11,11 @@ import (
 	"os"
 )
 
+type Version struct {
+	Protocol int
+	Text string
+}
+
 type Status struct {
 	enc *json.Encoder
 
@@ -19,9 +24,12 @@ type Status struct {
 	s *status
 }
 
-func NewStatus(protocol, max int, desc string) *Status {
+func NewStatus(version Version, max int, desc string) *Status {
 	var s status
-	s.Version.Name, s.Version.Protocol = versionName(protocol), protocol
+	if version.Text == "" {
+		version.Text = versionName(version.Protocol)
+	}
+	s.Version.Name, s.Version.Protocol = version.Text, version.Protocol
 	s.Players.Max, s.Description = max, chat.NewMessage(desc)
 
 	var buf bytes.Buffer
@@ -75,6 +83,12 @@ func (s *Status) json() []byte {
 
 func versionName(protocol int) string {
 	return map[int]string{
+		763: "1.20/1.20.1",
+		762: "1.19.4",
+		761: "1.19.3",
+		760: "1.19.1/1.19.2",
+		759: "1.19",
+		758: "1.18.2",
 		757: "1.18.1",
 		756: "1.17.1",
 		755: "1.17",
@@ -98,3 +112,4 @@ type status struct {
 	Description chat.Message `json:"description"`
 	Favicon     string       `json:"favicon,omitempty"`
 }
+

@@ -24,7 +24,7 @@ func main() {
 	lc := minecraft.ListenConfig{
 		OnlineMode:           true,//enables server encryption
 		CompressionThreshold: 0, //compresses everything!
-		Status:               minecraft.NewStatus(756, 10, "someone had todo it"),
+		Status:               minecraft.NewStatus(minecraft.Version{Protocol: 763}, 10, "someone had todo it"),
 	}
 
 	l, err := lc.Listen("localhost:25565")

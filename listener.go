@@ -9,12 +9,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
 	"io"
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/player"
 )
 
 type ListenConfig struct {
@@ -116,6 +117,15 @@ func (l *Listener) handle(conn *net.TCPConn) {
 		c.Close(nil)
 
 	case 0x02:
+		if pk.ProtocolVersion > int32(l.status.s.Version.Protocol) {
+			c.SendPacket(&packet.DisconnectLogin{
+				Reason: "Your protocol is too new!",
+			})
+		} else if pk.ProtocolVersion < int32(l.status.s.Version.Protocol) {
+			c.SendPacket(&packet.DisconnectLogin{
+				Reason: "Your protocol is too old!",
+			})
+		}
 		if err := l.handleLogin(c); err != nil {
 			c.Close(fmt.Errorf("%v while handling login", err))
 		} else {
