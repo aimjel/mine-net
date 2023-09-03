@@ -33,10 +33,15 @@ type ListenConfig struct {
 	// 0 compresses everything
 	CompressionThreshold int32
 
+	Messages *Messages
+
 	//todo add more config fields
 }
 
 func (lc *ListenConfig) Listen(address string) (*Listener, error) {
+	if lc.Messages == nil {
+		lc.Messages = &DefaultMessages
+	}
 	addr, err := net.ResolveTCPAddr("tcp4", address)
 	if err != nil {
 		return nil, err
@@ -60,6 +65,7 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 		key:                  key,
 		compressionThreshold: lc.CompressionThreshold,
 		status:               lc.Status,
+		messages:             lc.Messages,
 
 		await: make(chan *Conn, 4),
 	}
@@ -76,6 +82,8 @@ type Listener struct {
 	key *rsa.PrivateKey
 
 	status *Status
+
+	messages *Messages
 
 	compressionThreshold int32
 
@@ -119,11 +127,11 @@ func (l *Listener) handle(conn *net.TCPConn) {
 	case 0x02:
 		if pk.ProtocolVersion > int32(l.status.s.Version.Protocol) {
 			c.SendPacket(&packet.DisconnectLogin{
-				Reason: "Your protocol is too new!",
+				Reason: l.messages.ProtocolTooNew,
 			})
 		} else if pk.ProtocolVersion < int32(l.status.s.Version.Protocol) {
 			c.SendPacket(&packet.DisconnectLogin{
-				Reason: "Your protocol is too old!",
+				Reason: l.messages.ProtocolTooOld,
 			})
 		}
 		if err := l.handleLogin(c); err != nil {
@@ -202,7 +210,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	if bytes.Equal(verifyToken, token) == false {
+	if !bytes.Equal(verifyToken, token) {
 		return fmt.Errorf("failed to verify token")
 	}
 
@@ -254,7 +262,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 func (l *Listener) Accept() (*Conn, error) {
 	c, ok := <-l.await
-	if ok == false {
+	if !ok {
 		if l.err != nil {
 			return nil, l.err
 		}
