@@ -28,7 +28,8 @@ func calculateVarIntLength(x []int32) (n int) {
 }
 
 type Unknown struct {
-	Id int32
+	Id      int32
+	Payload []byte
 }
 
 func (u Unknown) ID() int32 {

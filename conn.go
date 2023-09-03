@@ -50,13 +50,15 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 
 	pk := c.pool.Get(id)
 	if pk == nil {
-		return packet.Unknown{Id: id}, nil
+		return packet.Unknown{Id: id, Payload: data}, nil
 	}
 
 	if err = pk.Decode(pw); err != nil {
 		return nil, fmt.Errorf("%v decoding packet contents for %#v", err, pk)
 	}
 
+	//checks if a buffer was used and puts it back in the pool
+	c.dec.PutBufferBack()
 	return pk, nil
 }
 
