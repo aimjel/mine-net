@@ -122,8 +122,6 @@ func (l *Listener) handle(conn *net.TCPConn) {
 			c.Close(fmt.Errorf("%v while handling status", err))
 		}
 
-		c.Close(nil)
-
 	case 0x02:
 		if pk.ProtocolVersion > int32(l.status.s.Version.Protocol) {
 			c.SendPacket(&packet.DisconnectLogin{
@@ -146,9 +144,12 @@ func (l *Listener) handle(conn *net.TCPConn) {
 			} else {
 				c.pool = &basicPool{}
 				l.await <- c
+				return //return so it doesn't close the connection
 			}
 		}
 	}
+
+	c.Close(nil)
 }
 
 func (l *Listener) handleStatus(c *Conn) error {
