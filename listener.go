@@ -61,11 +61,9 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 	}
 
 	l := &Listener{
-		tcpLn:                ln,
-		key:                  key,
-		compressionThreshold: lc.CompressionThreshold,
-		status:               lc.Status,
-		messages:             lc.Messages,
+		cfg:   *lc,
+		tcpLn: ln,
+		key:   key,
 
 		await: make(chan *Conn, 4),
 	}
@@ -77,15 +75,11 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 }
 
 type Listener struct {
+	cfg ListenConfig
+
 	tcpLn *net.TCPListener
 
 	key *rsa.PrivateKey
-
-	status *Status
-
-	messages *Messages
-
-	compressionThreshold int32
 
 	err error
 
@@ -118,25 +112,25 @@ func (l *Listener) handle(conn *net.TCPConn) {
 	switch pk.NextState {
 
 	case 0x01: //status
-		if err := l.handleStatus(c); err != nil && l.status != nil {
+		if err := l.handleStatus(c); err != nil && l.cfg.Status != nil {
 			c.Close(fmt.Errorf("%v while handling status", err))
 		}
 
 	case 0x02:
-		if pk.ProtocolVersion > int32(l.status.s.Version.Protocol) {
+		if pk.ProtocolVersion > int32(l.cfg.Status.s.Version.Protocol) {
 			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.messages.ProtocolTooNew,
+				Reason: l.cfg.Messages.ProtocolTooNew,
 			})
-		} else if pk.ProtocolVersion < int32(l.status.s.Version.Protocol) {
+		} else if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
 			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.messages.ProtocolTooOld,
+				Reason: l.cfg.Messages.ProtocolTooOld,
 			})
 		}
 		if err := l.handleLogin(c); err != nil {
 			c.Close(fmt.Errorf("%v while handling login", err))
 		} else {
-			if l.compressionThreshold != -1 {
-				c.enableCompression(l.compressionThreshold)
+			if x := l.cfg.CompressionThreshold; x != -1 {
+				c.enableCompression(x)
 			}
 
 			if c.SendPacket(&packet.LoginSuccess{Info: *c.Info}) != nil {
@@ -158,7 +152,7 @@ func (l *Listener) handleStatus(c *Conn) error {
 		return err
 	}
 
-	if err := c.SendPacket(&packet.Response{JSON: l.status.json()}); err != nil {
+	if err := c.SendPacket(&packet.Response{JSON: l.cfg.Status.json()}); err != nil {
 		return fmt.Errorf("%v writing response packet", err)
 	}
 
