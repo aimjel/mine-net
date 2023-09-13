@@ -38,7 +38,7 @@ func newConn(c *net.TCPConn) *Conn {
 func (c *Conn) ReadPacket() (packet.Packet, error) {
 	data, err := c.dec.DecodePacket()
 	if err != nil {
-		return nil, fmt.Errorf("%v decoding packet", err)
+		return nil, fmt.Errorf("%w decoding packet", err)
 	}
 
 	pw := packet.NewReader(data)
@@ -99,7 +99,7 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 
 	data := c.enc.Flush()
 	if _, err := c.tcpCn.Write(data); err != nil {
-		return fmt.Errorf("%v sending packet %v", err, pk)
+		return fmt.Errorf("%w sending packet %v", err, pk)
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func (c *Conn) FlushPackets() error {
 	defer c.encMu.Unlock()
 
 	if _, err := c.tcpCn.Write(c.enc.Flush()); err != nil {
-		return fmt.Errorf("%v writing packets", err)
+		return fmt.Errorf("%w writing packets", err)
 	}
 
 	return nil

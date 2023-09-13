@@ -39,7 +39,7 @@ func (dec *Decoder) EnableDecompression() {
 func (dec *Decoder) DecodePacket() ([]byte, error) {
 	pkLen, err := dec.r.ReadVarInt()
 	if err != nil {
-		return nil, fmt.Errorf("%v reading packet length", err)
+		return nil, fmt.Errorf("%w reading packet length", err)
 	}
 
 	if pkLen > MaxPacket || pkLen == 0 {
@@ -49,7 +49,7 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 	if dec.threshold != -1 {
 		dataLength, err := dec.r.ReadVarInt()
 		if err != nil {
-			return nil, fmt.Errorf("%v reading data length", err)
+			return nil, fmt.Errorf("%w reading data length", err)
 		}
 
 		if dataLength != 0 {
@@ -70,7 +70,7 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 
 func (dec *Decoder) decompress(len int) ([]byte, error) {
 	if err := dec.decompressor.(zlib.Resetter).Reset(dec.r, nil); err != nil {
-		return nil, fmt.Errorf("%v resetting decompresor", err)
+		return nil, fmt.Errorf("%w resetting decompresor", err)
 	}
 
 	buf := buffers.Get(len)
@@ -78,7 +78,7 @@ func (dec *Decoder) decompress(len int) ([]byte, error) {
 
 	n, err := dec.decompressor.Read(buf.Bytes()[:len])
 	if err != nil && n != len {
-		return nil, fmt.Errorf("%v decompressing payload", err)
+		return nil, fmt.Errorf("%w decompressing payload", err)
 	}
 
 	if n != len {
