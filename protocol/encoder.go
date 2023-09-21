@@ -38,7 +38,7 @@ func (enc *Encoder) EnableCompression(threshold int) {
 	enc.headerSize = 3 + 5 //max pk length and data length in bytes
 }
 
-func (enc *Encoder) Encode(pk packet.Packet) error {
+func (enc *Encoder) EncodePacket(pk packet.Packet) error {
 	start := enc.buf.Len() //records the start of the packet data
 
 	pw := packet.NewWriter(enc.buf)
@@ -51,42 +51,44 @@ func (enc *Encoder) Encode(pk packet.Packet) error {
 		return err
 	}
 
+	payload := enc.buf.Bytes()[start:enc.buf.Len()]
 	pkLen := enc.buf.Len() - start
+	dataLength := -1
+	if enc.threshold >= 0 {
+		if pkLen >= enc.threshold {
+			enc.buf.Truncate(start)
+			return enc.compress(payload)
+		}
+
+		dataLength = 0
+		pkLen++
+	}
+
 	enc.buf.Grow(enc.headerSize) //ensures the max header can fit
 
 	//makes room for the header
-	copy(enc.buf.Bytes()[start+enc.headerSize:enc.buf.Cap()], enc.buf.Bytes()[start:start+pkLen])
+	copy(enc.buf.Bytes()[start+enc.headerSize:enc.buf.Cap()], payload)
+
+	//changes the writers position to write at the space we created
+	enc.buf.Truncate(start)
+
+	enc.writeHeader(pkLen, dataLength)
+
 	start += enc.headerSize //updates the position where the data starts
-	enc.buf.Truncate(enc.buf.Len() - (pkLen))
 
-	dataLength := -1
-	if enc.threshold != -1 {
-		dataLength = 0
-
-		if pkLen >= enc.threshold {
-			return enc.compress(bytes.NewBuffer(enc.buf.Bytes()[start : start+pkLen]))
-		}
-	}
-
-	if dataLength == 0 {
-		enc.writeHeader(pkLen+1, dataLength)
-	} else {
-		enc.writeHeader(pkLen, dataLength)
-	}
-
-	enc.buf.Write(enc.buf.Bytes()[start : start+pkLen])
+	enc.buf.Write(enc.buf.Bytes()[start : start+len(payload)])
 
 	return nil
 }
 
 // compresses the bytes of the buffer object passed
-func (enc *Encoder) compress(payload *bytes.Buffer) error {
-	buf := buffers.Get(payload.Len())
+func (enc *Encoder) compress(payload []byte) error {
+	buf := buffers.Get(len(payload))
 	defer buffers.Put(buf)
 
 	enc.compressor.Reset(buf)
 
-	if _, err := enc.compressor.Write(payload.Bytes()); err != nil {
+	if _, err := enc.compressor.Write(payload); err != nil {
 		return err
 	}
 
@@ -94,7 +96,7 @@ func (enc *Encoder) compress(payload *bytes.Buffer) error {
 		return err
 	}
 
-	enc.writeHeader(buf.Len()+varIntSize(payload.Len()), payload.Len())
+	enc.writeHeader(buf.Len()+varIntSize(len(payload)), len(payload))
 
 	enc.buf.Write(buf.Bytes())
 	return nil

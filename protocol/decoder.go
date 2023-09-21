@@ -1,9 +1,11 @@
 package protocol
 
 import (
+	"bufio"
 	"bytes"
 	"compress/zlib"
 	"crypto/cipher"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -13,15 +15,14 @@ const MaxPacket = 1 << 21
 type Decoder struct {
 	r *Reader
 
-	decompressor io.ReadCloser
+	decompression bool
 
-	threshold int
-
-	putBack *bytes.Buffer
+	tmp      *bytes.Buffer
+	tmpInUse bool
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: NewReader(r), threshold: -1}
+	return &Decoder{r: NewReader(r)}
 }
 
 func (dec *Decoder) EnableDecryption(block cipher.Block, iv []byte) {
@@ -30,13 +31,14 @@ func (dec *Decoder) EnableDecryption(block cipher.Block, iv []byte) {
 
 // EnableDecompression Enables zlib decompression
 func (dec *Decoder) EnableDecompression() {
-	dec.decompressor, _ = zlib.NewReader(bytes.NewBuffer([]byte{0x78, 0x9c}))
-	dec.threshold = 0 //doesn't actually do anything just allows the check to go through
+	dec.decompression = true
 }
 
 // DecodePacket reads from the underlying reader and returns a packet's payload.
 // The slice returned is valid until the next call.
 func (dec *Decoder) DecodePacket() ([]byte, error) {
+	dec.tmpInUse = false
+
 	pkLen, err := dec.r.ReadVarInt()
 	if err != nil {
 		return nil, fmt.Errorf("%w reading packet length", err)
@@ -46,7 +48,7 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 		return nil, fmt.Errorf("invalid packet length of %v", pkLen)
 	}
 
-	if dec.threshold != -1 {
+	if dec.decompression {
 		dataLength, err := dec.r.ReadVarInt()
 		if err != nil {
 			return nil, fmt.Errorf("%w reading data length", err)
@@ -59,38 +61,57 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 		pkLen--
 	}
 
-	buf := buffers.Get(pkLen)
-	err, putBack := dec.r.writeTo(buf, pkLen)
-	if putBack {
-		dec.putBack = buf
+	payload, err := dec.r.Next(pkLen)
+	if err != nil {
+		if errors.Is(err, bufio.ErrBufferFull) {
+			buf := dec.buffer(pkLen)
+			return buf.Bytes(), dec.r.readFull(buf, pkLen)
+		}
 	}
 
-	return buf.Bytes(), nil
+	if dec.tmpInUse == false && dec.tmp != nil {
+		buffers.Put(dec.tmp)
+	}
+
+	return payload, err
 }
 
 func (dec *Decoder) decompress(len int) ([]byte, error) {
-	if err := dec.decompressor.(zlib.Resetter).Reset(dec.r, nil); err != nil {
+	zr := zlibReaders.Get().(io.ReadCloser)
+	if err := zr.(zlib.Resetter).Reset(dec.r, nil); err != nil {
 		return nil, fmt.Errorf("%w resetting decompresor", err)
 	}
 
-	buf := buffers.Get(len)
-	defer buffers.Put(buf)
+	buf := dec.buffer(len)
+	buf.Grow(len)
 
-	n, err := dec.decompressor.Read(buf.Bytes()[:len])
-	if err != nil && n != len {
-		return nil, fmt.Errorf("%w decompressing payload", err)
+	var written int
+	for written != len {
+		n, err := zr.Read(buf.Bytes()[written:len])
+		written += n
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return nil, fmt.Errorf("%w decompressing payload", err)
+		}
 	}
 
-	if n != len {
-		return nil, fmt.Errorf("decompressed an incorrect amount of data")
+	if written != len {
+		return nil, fmt.Errorf("decompressed %v bytes but expected %v bytes", written, len)
 	}
 
-	return buf.Bytes()[:n], nil
+	return buf.Bytes()[:written], nil
 }
 
-func (dec *Decoder) PutBufferBack() {
-	if dec.putBack != nil {
-		buffers.Put(dec.putBack)
-		dec.putBack = nil
+func (dec *Decoder) buffer(size int) *bytes.Buffer {
+	dec.tmpInUse = true
+	if dec.tmp != nil {
+		dec.tmp.Reset()
+		return dec.tmp
 	}
+
+	dec.tmp = buffers.Get(size)
+	return dec.tmp
 }

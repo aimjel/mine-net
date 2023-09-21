@@ -15,18 +15,28 @@ var hs = &packet.Handshake{
 
 var jg = &packet.JoinGame{}
 
-func TestEncoder_Encode(t *testing.T) {
-	enc := NewEncoder()
-	//enc.EnableCompression(1)
+var enc = func() *Encoder {
+	e := NewEncoder()
+	e.EnableCompression(20)
+	return e
+}()
 
-	for i := 0; i < 1; i++ {
-		if err := enc.Encode(jg); err != nil {
+func TestEncoder_Encode(t *testing.T) {
+	for i := 0; i < 2; i++ {
+		if err := enc.EncodePacket(hs); err != nil {
 			t.Fatal(err)
 		}
-
 	}
+	t.Log(enc.Flush())
+}
 
-	//t.Log(enc.Flush())
+func BenchmarkEncoder_EncodePacket(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		enc.EncodePacket(jg)
+		b.StopTimer()
+		enc.Flush()
+		b.StartTimer()
+	}
 }
 
 func TestDecoder_DecodePacket(t *testing.T) {
@@ -36,7 +46,7 @@ func TestDecoder_DecodePacket(t *testing.T) {
 	enc.EnableCompression(0)
 
 	for i := 0; i < 1; i++ {
-		if err := enc.Encode(hs); err != nil {
+		if err := enc.EncodePacket(hs); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -39,8 +39,8 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x32: func() packet.Packet { return &packet.UseItem{} },
 }
 
-type clientLoginPool struct{}
+type nopPool struct{}
 
-func (c clientLoginPool) Get(id int32) packet.Packet {
+func (c nopPool) Get(id int32) packet.Packet {
 	return nil
 }

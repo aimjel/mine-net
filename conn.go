@@ -38,11 +38,10 @@ func newConn(c *net.TCPConn) *Conn {
 func (c *Conn) ReadPacket() (packet.Packet, error) {
 	data, err := c.dec.DecodePacket()
 	if err != nil {
-		return nil, fmt.Errorf("%w decoding packet", err)
+		return nil, err
 	}
 
 	pw := packet.NewReader(data)
-
 	var id int32
 	if err = pw.VarInt(&id); err != nil {
 		return nil, fmt.Errorf("%v decoding packet id", err)
@@ -57,8 +56,6 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 		return nil, fmt.Errorf("%v decoding packet contents for %#v", err, pk)
 	}
 
-	//checks if a buffer was used and puts it back in the pool
-	c.dec.PutBufferBack()
 	return pk, nil
 }
 
@@ -93,7 +90,7 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 
-	if err := c.enc.Encode(pk); err != nil {
+	if err := c.enc.EncodePacket(pk); err != nil {
 		return err
 	}
 
@@ -114,7 +111,7 @@ func (c *Conn) WritePacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 
-	return c.enc.Encode(pk)
+	return c.enc.EncodePacket(pk)
 }
 
 func (c *Conn) FlushPackets() error {

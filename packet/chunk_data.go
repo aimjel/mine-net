@@ -14,7 +14,7 @@ type ChunkData struct {
 
 	Sections []struct {
 		BitsPerEntry uint8
-		//Entries global ids
+		//entries global ids
 		Entries []int32
 
 		BlockStates []int64

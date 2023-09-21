@@ -2,11 +2,25 @@ package protocol
 
 import (
 	"bytes"
+	"compress/zlib"
 	"math"
 	"sync"
 )
 
 var buffers = NewBufferPool()
+
+type zlibHeader struct{}
+
+func (z zlibHeader) Read(p []byte) (int, error) {
+	return copy(p, []byte{0x78, 0x9c}), nil
+}
+
+var zlibReaders = sync.Pool{
+	New: func() any {
+		z, _ := zlib.NewReader(zlibHeader{})
+		return z
+	},
+}
 
 // BufferPool holds different size of buffers and returns the best match size
 type BufferPool struct {
