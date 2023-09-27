@@ -1,8 +1,8 @@
 package packet
 
 type GameEvent struct {
-  Event uint8
-  Value float32
+	Event uint8
+	Value float32
 }
 
 func (m GameEvent) ID() int32 {
@@ -10,8 +10,8 @@ func (m GameEvent) ID() int32 {
 }
 
 func (m *GameEvent) Decode(r *Reader) error {
- 	r.Uint8(m.Event)
-	r.Float32(m.Value)
+	r.Uint8(&m.Event)
+	return r.Float32(&m.Value)
 }
 
 func (m GameEvent) Encode(w Writer) error {
