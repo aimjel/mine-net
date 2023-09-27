@@ -80,7 +80,6 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 
 			case 3: //integer
 				_ = r.Uint8(&n.Properties.Flags)
-				fmt.Printf("brigadier:integer flags %08b\n", n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = r.Int32((*int32)(unsafe.Pointer(&n.Properties.Min)))
 				}
@@ -199,14 +198,14 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 type Node struct {
 	Flags        uint8
-	Children     []int32 `json:",omitempty"`
-	RedirectNode int32   `json:",omitempty"`
-	Name         string  `json:",omitempty"`
-	ParserID     int32   `json:",omitempty"`
+	Children     []int32
+	RedirectNode int32
+	Name         string
+	ParserID     int32
 	Properties   struct {
-		Flags      uint8  `json:",omitempty"`
-		Min, Max   uint64 `json:",omitempty"` //min and max stores the bits of the actual data type
-		Identifier string `json:",omitempty"`
+		Flags      uint8
+		Min, Max   uint64 //min and max stores the bits of the actual data type
+		Identifier string
 	}
-	SuggestionsType string `json:",omitempty"`
+	SuggestionsType string
 }
