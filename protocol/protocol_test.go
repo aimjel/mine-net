@@ -43,7 +43,7 @@ func TestDecoder_DecodePacket(t *testing.T) {
 	t.Run("TestEncoder_Encode", TestEncoder_Encode)
 
 	enc := NewEncoder()
-	enc.EnableCompression(0)
+	enc.EnableCompression(15)
 
 	for i := 0; i < 1; i++ {
 		if err := enc.EncodePacket(hs); err != nil {
@@ -60,6 +60,6 @@ func TestDecoder_DecodePacket(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		t.Logf("%v\n", pk)
+		t.Logf("decoded packet %v\n", pk)
 	}
 }

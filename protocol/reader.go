@@ -35,6 +35,10 @@ func (r *Reader) Next(n int) ([]byte, error) {
 		return nil, err
 	}
 
+	if r.cipher != nil && err == nil {
+		r.cipher.XORKeyStream(b, b)
+	}
+
 	_, err = r.buf.Discard(len(b))
 	return b, err
 }
@@ -54,7 +58,7 @@ func (r *Reader) ReadByte() (byte, error) {
 
 	x := []byte{b}
 
-	if r.cipher != nil && err != nil {
+	if r.cipher != nil && err == nil {
 		r.cipher.XORKeyStream(x, x)
 	}
 

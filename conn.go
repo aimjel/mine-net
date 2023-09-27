@@ -110,7 +110,6 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 func (c *Conn) WritePacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
-
 	return c.enc.EncodePacket(pk)
 }
 
