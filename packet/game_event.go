@@ -6,7 +6,7 @@ type GameEvent struct {
 }
 
 func (m GameEvent) ID() int32 {
-	return 0x20
+	return 0x1F
 }
 
 func (m *GameEvent) Decode(r *Reader) error {
