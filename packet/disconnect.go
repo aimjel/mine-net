@@ -26,3 +26,11 @@ func (l DisconnectLogin) Encode(w Writer) error {
 
 	return w.ByteArray(b)
 }
+
+type DisconnectPlay struct {
+	DisconnectLogin
+}
+
+func (p DisconnectPlay) ID() int32 {
+	return 0x1a
+}
