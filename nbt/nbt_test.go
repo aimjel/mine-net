@@ -64,7 +64,7 @@ type chunk struct {
 			BlockStates []int64
 			Palette     []struct {
 				Name       string
-				Properties map[string]interface{}
+				Properties map[string]string
 			}
 		}
 	}
@@ -97,7 +97,6 @@ func BenchmarkUnmarshalChunk(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-
 	b.ReportAllocs()
 }
 

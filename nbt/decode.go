@@ -126,11 +126,12 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 }
 
 func (d *decoder) unmarshalCompoundMap(v reflect.Value) {
-	m := make(map[string]interface{})
+	if v.IsNil() {
+		v.Set(reflect.MakeMap(v.Type()))
+	}
 	for {
 		id := d.readByte()
 		if id == tagEnd {
-			v.Set(reflect.ValueOf(m))
 			return
 		}
 
@@ -140,8 +141,14 @@ func (d *decoder) unmarshalCompoundMap(v reflect.Value) {
 		switch id {
 
 		case tagString:
-			m[name] = strings.Clone(d.readUnsafeString())
+			value := strings.Clone(d.readUnsafeString())
+			if v.Type().Elem().Kind() == reflect.String {
+				m := v.Interface().(map[string]string)
+				m[name] = value
+				continue
+			}
 
+			v.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(value))
 		}
 	}
 }

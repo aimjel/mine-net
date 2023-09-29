@@ -1,3 +1,3 @@
 module github.com/aimjel/minecraft
 
-go 1.19
+go 1.21.0
