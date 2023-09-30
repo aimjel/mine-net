@@ -4,27 +4,26 @@ type ChunkData struct {
 	X, Z int32
 
 	Heightmaps struct {
-		Heightmaps struct {
-			MotionBlocking []int64 `nbt:"MOTION_BLOCKING"`
-			WorldSurface   []int64 `nbt:"WORLD_SURFACE"`
-		}
+		MotionBlocking []int64 `nbt:"MOTION_BLOCKING"`
+		WorldSurface   []int64 `nbt:"WORLD_SURFACE"`
 	}
 
-	Biomes []int32
+	Sections []Section
 
-	Sections []struct {
-		BitsPerEntry uint8
-		//entries global ids
-		Entries []int32
-
-		BlockStates []int64
+	BlockEntities []struct {
+		PackedXZ byte
+		Y        uint16
+		Type     int32
+		Data     []byte //nbt
 	}
 
-	BlockEntities []byte
+	SkyLight [][2028]byte
+
+	BlockLight [][2028]byte
 }
 
 func (d ChunkData) ID() int32 {
-	return 0x22
+	return 0x24
 }
 
 func (d *ChunkData) Decode(r *Reader) error {
@@ -36,45 +35,136 @@ func (d ChunkData) Encode(w Writer) error {
 	_ = w.Int32(d.X)
 	_ = w.Int32(d.Z)
 
-	//The max height for 1.17.1 is 320.
-	//320 / 16 equals only 20 possible sections, so the bit mask will never be over 64 bits(for now)
-	_ = w.Uint8(1)
-	_ = w.Int64(int64(1<<len(d.Sections) - 1))
-
 	_ = w.Nbt2(d.Heightmaps)
 
-	_ = w.VarIntArray(d.Biomes)
-
-	var dataLength int32
+	var bytes int32
 	for _, s := range d.Sections {
-		dataLength += 2
-		dataLength++
+		bytes += 2 //block count
 
-		lengthEntries := int32(calculateVarIntLength(s.Entries))
+		//!BLOCK STATES
+		bytes++ //bits per entry
 
-		dataLength += int32(calculateVarIntLength([]int32{lengthEntries}))
-		dataLength += lengthEntries
+		//palette
+		if s.BlockStates.BitsPerEntry == 0 {
+			bytes += sizeVarInt(s.BlockStates.Entries[0])
+		} else {
+			bytes += sizeVarInt(int32(len(s.BlockStates.Entries)))
+			bytes += sizeVarInts(s.BlockStates.Entries)
+		}
 
-		lengthStates := int32(len(s.BlockStates) * 8)
+		//data
+		if s.BlockStates.BitsPerEntry != 0 {
+			bytes += sizeVarInt(int32(len(s.BlockStates.Data)))
+			//longBits := int32(64 / s.BlockStates.BitsPerEntry) //calculates how many bits are usable per long
+			bytes += int32(len(s.BlockStates.Data)) * 8
+		}
 
-		dataLength += int32(calculateVarIntLength([]int32{lengthStates}))
+		////!BIOMES
+		bytes++ //bits per entry
 
-		dataLength += lengthStates
+		//palette
+		if s.Biomes.BitsPerEntry == 0 {
+			//todo fix this
+			bytes += sizeVarInt(0)
+		} else {
+			bytes += sizeVarInt(int32(len(s.Biomes.Entries)))
+			bytes += sizeVarInts(s.Biomes.Entries)
+		}
+
+		//data
+		if s.Biomes.BitsPerEntry != 0 {
+			bytes += sizeVarInt(int32(len(s.Biomes.Data)))
+			bytes += (int32(s.Biomes.BitsPerEntry) * 64) / 8
+		} else {
+			bytes++ //empty long
+		}
 	}
 
-	if err := w.VarInt(dataLength); err != nil {
+	if err := w.VarInt(bytes); err != nil {
 		return err
 	}
 
 	for _, s := range d.Sections {
 		_ = w.Uint16(5000) //TODO: Implement proper block count
 
-		_ = w.Uint8(s.BitsPerEntry)
+		_ = w.Uint8(s.BlockStates.BitsPerEntry)
+		if s.BlockStates.BitsPerEntry == 0 {
+			_ = w.VarInt(s.BlockStates.Entries[0])
+		} else {
+			_ = w.VarIntArray(s.BlockStates.Entries)
+			_ = w.Int64Array(s.BlockStates.Data)
+		}
 
-		_ = w.VarIntArray(s.Entries)
-
-		_ = w.Int64Array(s.BlockStates)
+		_ = w.Uint8(s.Biomes.BitsPerEntry)
+		if s.Biomes.BitsPerEntry == 0 {
+			_ = w.VarInt(9) //biome id
+			_ = w.Uint8(0)  //empty data array
+		} else {
+			_ = w.VarIntArray(s.Biomes.Entries)
+			_ = w.Int64Array(s.Biomes.Data)
+		}
 	}
 
-	return w.ByteArray(d.BlockEntities)
+	//TODO length of block entities
+	_ = w.VarInt(0)
+
+	//TODO Sky light, Block light, empty sky light, empty block light
+	for i := 0; i < 4; i++ {
+		_ = w.Uint8(1)
+		_ = w.Uint64(0)
+	}
+
+	//TODO sky light and block light arrays.
+	_ = w.Uint8(0)
+	_ = w.Uint8(0)
+	return nil
+}
+
+type Section struct {
+	BlockCount uint16
+
+	BlockStates struct {
+		BitsPerEntry uint8
+		//entries global ids
+		Entries []int32
+
+		Data []int64
+	}
+
+	Biomes struct {
+		BitsPerEntry uint8
+		//entries global ids
+		Entries []int32
+
+		Data []int64
+	}
+}
+
+type bitSet struct {
+	//the position of the bit we are writing at
+	at int64
+
+	out []int64
+
+	//the index of the slice entry we edit
+	i int
+}
+
+// add a bit to the bit set.
+// x parameter controls if the bit should be set
+func (b *bitSet) add(x bool) {
+	if b.at == 64 {
+		b.out = append(b.out, 0)
+		b.at = 0
+		b.i++
+	}
+
+	if x {
+		bitset := b.out[b.i] & ^(1 << b.at)
+		b.out[b.i] = bitset
+	} else {
+		b.out[b.i] <<= 1
+	}
+
+	b.at++
 }

@@ -12,19 +12,23 @@ type Packet interface {
 	Encode(w Writer) error
 }
 
-// calculateVarIntLength returns the number of bytes the var-int array will use
-func calculateVarIntLength(x []int32) (n int) {
+// calculateVarInts returns the number of bytes the var-int array will use
+func sizeVarInts(x []int32) (n int32) {
 	for i := 0; i < len(x); i++ {
-
-		ux := uint32(x[i])
-		for ux >= 0x80 {
-			n++
-			ux >>= 7
-		}
-		n++
+		n += sizeVarInt(x[i])
 	}
 
 	return n
+}
+
+func sizeVarInt(x int32) (n int32) {
+	ux := uint32(x)
+	for ux >= 0x80 {
+		n++
+		ux >>= 7
+	}
+	n++
+	return
 }
 
 type Unknown struct {

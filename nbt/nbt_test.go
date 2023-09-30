@@ -45,29 +45,28 @@ type bigTest struct {
 }
 
 type chunk struct {
-	Level struct {
-		Status        string
-		ZPos          int32 `nbt:"zPos"`
-		LastUpdate    int64
-		Biomes        []int32
-		InhabitedTime int64
-		XPos          int32 `nbt:"xPos"`
-		Heightmaps    struct {
-			OceanFloor             []int64 `nbt:"OCEAN_FLOOR"`
-			MotionBlockingNoLeaves []int64 `nbt:"MOTION_BLOCKING_NO_LEAVES"`
-			MotionBlocking         []int64 `nbt:"MOTION_BLOCKING"`
-			WorldSurface           []int64 `nbt:"WORLD_SURFACE"`
-		}
-		IsLightOn int8 `nbt:"isLightOn"`
-		Sections  []struct {
-			Y           int8
-			BlockStates []int64
-			Palette     []struct {
+	Status        string
+	ZPos          int32 `nbt:"zPos"`
+	LastUpdate    int64
+	InhabitedTime int64
+	XPos          int32 `nbt:"xPos"`
+	Heightmaps    struct {
+		OceanFloor             []int64 `nbt:"OCEAN_FLOOR"`
+		MotionBlockingNoLeaves []int64 `nbt:"MOTION_BLOCKING_NO_LEAVES"`
+		MotionBlocking         []int64 `nbt:"MOTION_BLOCKING"`
+		WorldSurface           []int64 `nbt:"WORLD_SURFACE"`
+	}
+	IsLightOn int8 `nbt:"isLightOn"`
+	Sections  []struct {
+		Y           int8
+		BlockStates struct {
+			Data    []int64 `nbt:"data"`
+			Palette []struct {
 				Name       string
 				Properties map[string]string
-			}
-		}
-	}
+			} `nbt:"palette"`
+		} `nbt:"block_states"`
+	} `nbt:"sections"`
 
 	DataVersion int32
 }
@@ -78,7 +77,9 @@ func TestUnmarshal_chunk(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("%+v\n", c)
+	for _, section := range c.Sections {
+		t.Log(section.BlockStates)
+	}
 }
 
 func TestUnmarshal_bigtest(t *testing.T) {
