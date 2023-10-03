@@ -196,9 +196,10 @@ func (d *decoder) unmarshalList(v reflect.Value, id byte) error {
 			return fmt.Errorf("nbt: cannot marshal a byte array into %v", valueKind)
 		}
 
-		x := make([]byte, length)
+		x := make([]uint8, length)
 		d.at += copy(x, d.buf[d.at:d.at+length])
-		v.Set(reflect.ValueOf(x))
+		int8Slice := unsafe.Slice((*int8)(unsafe.Pointer(&x[0])), len(x))
+		v.Set(reflect.ValueOf(int8Slice))
 
 	case tagShort:
 		if valueKind != reflect.Int16 {

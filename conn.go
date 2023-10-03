@@ -7,6 +7,7 @@ import (
 	"github.com/aimjel/minecraft/player"
 	"github.com/aimjel/minecraft/protocol"
 	"net"
+	"os"
 	"sync"
 )
 
@@ -95,6 +96,9 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 	}
 
 	data := c.enc.Flush()
+	if pk.ID() == 0x24 {
+		os.WriteFile("packet.bin", data[3:], 0666)
+	}
 	if _, err := c.tcpCn.Write(data); err != nil {
 		return fmt.Errorf("%w sending packet %v", err, pk)
 	}

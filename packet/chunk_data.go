@@ -1,5 +1,10 @@
 package packet
 
+import (
+	"fmt"
+	"unsafe"
+)
+
 type ChunkData struct {
 	X, Z int32
 
@@ -16,10 +21,6 @@ type ChunkData struct {
 		Type     int32
 		Data     []byte //nbt
 	}
-
-	SkyLight [][2028]byte
-
-	BlockLight [][2028]byte
 }
 
 func (d ChunkData) ID() int32 {
@@ -55,8 +56,9 @@ func (d ChunkData) Encode(w Writer) error {
 		//data
 		if s.BlockStates.BitsPerEntry != 0 {
 			bytes += sizeVarInt(int32(len(s.BlockStates.Data)))
-			//longBits := int32(64 / s.BlockStates.BitsPerEntry) //calculates how many bits are usable per long
 			bytes += int32(len(s.BlockStates.Data)) * 8
+		} else {
+			bytes++ //empty array
 		}
 
 		////!BIOMES
@@ -85,20 +87,28 @@ func (d ChunkData) Encode(w Writer) error {
 	}
 
 	for _, s := range d.Sections {
-		_ = w.Uint16(5000) //TODO: Implement proper block count
-
-		_ = w.Uint8(s.BlockStates.BitsPerEntry)
 		if s.BlockStates.BitsPerEntry == 0 {
+			if s.BlockStates.Entries[0] == 0 {
+				_ = w.Uint16(0) //TODO: Implement proper block count
+			} else {
+				_ = w.Uint16(5000) //TODO: Implement proper block count
+			}
+
+			_ = w.Uint8(s.BlockStates.BitsPerEntry)
 			_ = w.VarInt(s.BlockStates.Entries[0])
+			w.Uint8(0) //empty data array
 		} else {
+			_ = w.Uint16(5000) //TODO: Implement proper block count
+
+			_ = w.Uint8(s.BlockStates.BitsPerEntry)
 			_ = w.VarIntArray(s.BlockStates.Entries)
 			_ = w.Int64Array(s.BlockStates.Data)
 		}
 
 		_ = w.Uint8(s.Biomes.BitsPerEntry)
 		if s.Biomes.BitsPerEntry == 0 {
-			_ = w.VarInt(9) //biome id
-			_ = w.Uint8(0)  //empty data array
+			_ = w.VarInt(0x39) //biome id
+			_ = w.Uint8(0)     //empty data array
 		} else {
 			_ = w.VarIntArray(s.Biomes.Entries)
 			_ = w.Int64Array(s.Biomes.Data)
@@ -108,15 +118,57 @@ func (d ChunkData) Encode(w Writer) error {
 	//TODO length of block entities
 	_ = w.VarInt(0)
 
-	//TODO Sky light, Block light, empty sky light, empty block light
-	for i := 0; i < 4; i++ {
-		_ = w.Uint8(1)
-		_ = w.Uint64(0)
+	var skyArrays, blockArrays uint8
+	skyLight := bitSet{out: make([]int64, 1)}
+	blockLight := bitSet{out: make([]int64, 1)}
+	emptySkyLight := bitSet{out: make([]int64, 1)}
+	emptyBlockLight := bitSet{out: make([]int64, 1)}
+
+	for i, section := range d.Sections {
+		if section.SkyLight != nil {
+			skyArrays++
+			skyLight.set(i)
+		}
+
+		if section.BlockLight != nil {
+			blockArrays++
+			blockLight.set(i)
+		}
+
+		if allZero(section.SkyLight) {
+			if section.SkyLight != nil {
+				fmt.Println(i, "has empty skylight")
+				fmt.Printf("%064b\n", emptySkyLight.out[0])
+				emptySkyLight.set(i)
+			}
+		}
+
+		if allZero(section.BlockLight) {
+			if section.BlockLight != nil {
+				fmt.Println(len(section.BlockLight))
+				emptyBlockLight.set(i)
+			}
+		}
 	}
 
-	//TODO sky light and block light arrays.
-	_ = w.Uint8(0)
-	_ = w.Uint8(0)
+	_ = w.Int64Array(skyLight.out)
+	_ = w.Int64Array(blockLight.out)
+	_ = w.Int64Array(emptySkyLight.out)
+	_ = w.Int64Array(emptyBlockLight.out)
+
+	_ = w.Uint8(skyArrays)
+	for _, section := range d.Sections {
+		if section.SkyLight != nil {
+			_ = w.ByteArray(*(*[]byte)(unsafe.Pointer(&section.SkyLight)))
+		}
+	}
+
+	_ = w.Uint8(blockArrays)
+	for _, section := range d.Sections {
+		if section.BlockLight != nil {
+			_ = w.ByteArray(*(*[]byte)(unsafe.Pointer(&section.BlockLight)))
+		}
+	}
 	return nil
 }
 
@@ -138,6 +190,10 @@ type Section struct {
 
 		Data []int64
 	}
+
+	SkyLight []int8
+
+	BlockLight []int8
 }
 
 type bitSet struct {
@@ -152,19 +208,21 @@ type bitSet struct {
 
 // add a bit to the bit set.
 // x parameter controls if the bit should be set
-func (b *bitSet) add(x bool) {
+func (b *bitSet) set(x int) {
 	if b.at == 64 {
 		b.out = append(b.out, 0)
-		b.at = 0
 		b.i++
 	}
 
-	if x {
-		bitset := b.out[b.i] & ^(1 << b.at)
-		b.out[b.i] = bitset
-	} else {
-		b.out[b.i] <<= 1
-	}
-
+	b.out[b.i] |= 1 << (x % 64)
 	b.at++
+}
+
+func allZero(s []int8) bool {
+	for _, v := range s {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
 }

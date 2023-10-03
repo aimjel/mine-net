@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/aimjel/minecraft"
 	"github.com/aimjel/minecraft/packet"
 	"io"
@@ -27,11 +28,29 @@ func main() {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-
 			panic(err)
 		}
 
 		if uk, ok := pk.(packet.Unknown); ok {
+			if pk.ID() == 0x52 {
+				fmt.Println(uk.Payload)
+			}
+
+			if pk.ID() == 0x24 {
+				var x int32
+				rd := packet.NewReader(uk.Payload)
+				rd.VarInt(&x) //id
+
+				rd.Int32(&x) //x
+				xcord := x
+				rd.Int32(&x) //x
+				zcord := x
+
+				if xcord == 0 && zcord == 0 {
+					os.WriteFile("chunk.0.0.bin", uk.Payload, 0666)
+				}
+			}
+
 			id := strconv.FormatInt(int64(uk.Id), 16)
 			stat := m[id]
 
