@@ -8,7 +8,7 @@ type PlayerPositionLook struct {
 }
 
 func (l *PlayerPositionLook) ID() int32 {
-	return 0x17
+	return 0x3c
 }
 
 func (l *PlayerPositionLook) Decode(r *Reader) error {

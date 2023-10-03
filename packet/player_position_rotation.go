@@ -9,7 +9,7 @@ type PlayerPositionRotation struct {
 }
 
 func (r PlayerPositionRotation) ID() int32 {
-	return 0x17
+	return 0x15
 }
 
 func (r *PlayerPositionRotation) Decode(rd *Reader) error {
