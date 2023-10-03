@@ -7,7 +7,7 @@ type PlayerPosition struct {
 }
 
 func (p PlayerPosition) ID() int32 {
-	return 0x11
+	return 0x16
 }
 
 func (p *PlayerPosition) Decode(r *Reader) error {

@@ -5,7 +5,7 @@ type PlayerMovement struct {
 }
 
 func (m PlayerMovement) ID() int32 {
-	return 0x14
+	return 0x19
 }
 
 func (m *PlayerMovement) Decode(r *Reader) error {
