@@ -1,7 +1,6 @@
 package packet
 
 import (
-	"fmt"
 	"unsafe"
 )
 
@@ -124,29 +123,30 @@ func (d ChunkData) Encode(w Writer) error {
 	emptySkyLight := bitSet{out: make([]int64, 1)}
 	emptyBlockLight := bitSet{out: make([]int64, 1)}
 
+	emptySkyLight.set(0)
+	emptyBlockLight.set(0)
+
+	emptyBlockLight.set(9) //temp for now
 	for i, section := range d.Sections {
 		if section.SkyLight != nil {
 			skyArrays++
-			skyLight.set(i)
+			skyLight.set(i + 1)
 		}
 
 		if section.BlockLight != nil {
 			blockArrays++
-			blockLight.set(i)
+			blockLight.set(i + 1)
 		}
 
 		if allZero(section.SkyLight) {
-			if section.SkyLight != nil {
-				fmt.Println(i, "has empty skylight")
-				fmt.Printf("%064b\n", emptySkyLight.out[0])
-				emptySkyLight.set(i)
+			if section.BlockStates.Entries[0] != 0x00 { //air
+				emptySkyLight.set(i + 1)
 			}
 		}
 
 		if allZero(section.BlockLight) {
-			if section.BlockLight != nil {
-				fmt.Println(len(section.BlockLight))
-				emptyBlockLight.set(i)
+			if section.BlockStates.BitsPerEntry != 0 {
+				emptyBlockLight.set(i + 1)
 			}
 		}
 	}
