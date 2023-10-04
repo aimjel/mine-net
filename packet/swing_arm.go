@@ -1,7 +1,7 @@
 package packet
 
 type SwingArmServer struct {
-  Hand int32
+	Hand int32
 }
 
 func (s SwingArmServer) ID() int32 {
