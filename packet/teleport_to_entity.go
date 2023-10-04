@@ -9,9 +9,9 @@ func (s TeleportToEntityServer) ID() int32 {
 }
 
 func (s *TeleportToEntityServer) Decode(r *Reader) error {
-  return r.VarInt(&s.Player)
+  return r.UUID(&s.Player)
 }
 
 func (s TeleportToEntityServer) Encode(w Writer) error {
-	return w.VarInt(s.Player)
+	return w.UUID(s.Player)
 }
