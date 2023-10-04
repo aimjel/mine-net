@@ -1,14 +1,8 @@
 package packet
 
-import (
-	"encoding/json"
-	"fmt"
-	"github.com/aimjel/minecraft/chat"
-)
-
 type HurtAnimation struct {
 	EntityID int32
-  Yaw float32
+  	Yaw float32
 }
 
 func (l HurtAnimation) ID() int32 {
