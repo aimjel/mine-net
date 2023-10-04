@@ -24,6 +24,8 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x07: func() packet.Packet { return &packet.ClientStatus{} },
 	0x08: func() packet.Packet { return &packet.ClientSettings{} },
 
+	0x10: func() packet.Packet { return &packet.InteractServer{} },
+
 	0x14: func() packet.Packet { return &packet.PlayerPosition{} },
 	0x15: func() packet.Packet { return &packet.PlayerPositionRotation{} },
 	0x16: func() packet.Packet { return &packet.PlayerRotation{} },
