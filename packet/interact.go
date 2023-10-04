@@ -43,5 +43,5 @@ func (p InteractServer) Encode(w Writer) error {
     _ = w.VarInt(p.Hand)
   }
   
-	return r.Bool(p.Sneaking)
+	return w.Bool(p.Sneaking)
 }
