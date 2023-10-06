@@ -2,6 +2,7 @@ package minecraft
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -172,7 +173,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 	if l.key == nil {
 		var uuid [16]byte
-		_, _ = rand.Read(uuid[:])
+		newUUIDv3(ls.Name, uuid[:])
 		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
 		return nil
 	}
@@ -310,4 +311,15 @@ func twosComplement(p []byte) {
 			break
 		}
 	}
+}
+
+func newUUIDv3(name string, out []byte) {
+	h := md5.New()
+	h.Write([]byte("OfflinePlayer:" + name))
+	id := h.Sum(nil)
+
+	id[6] = (id[6] & 0x0f) | uint8((3&0xf)<<4)
+	id[8] = (id[8] & 0x3f) | 0x80 // RFC 4122 variant
+
+	copy(out, id)
 }
