@@ -23,6 +23,7 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x05: func() packet.Packet { return &packet.ChatMessageServer{} },
 	0x07: func() packet.Packet { return &packet.ClientStatus{} },
 	0x08: func() packet.Packet { return &packet.ClientSettings{} },
+	0x09: func() packet.Packet { return &packet.CommandSuggestionsRequest{} }
 
 	0x10: func() packet.Packet { return &packet.InteractServer{} },
 
