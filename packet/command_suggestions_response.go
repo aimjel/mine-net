@@ -9,7 +9,7 @@ type CommandSuggestionsResponse struct {
   Matches []SuggestionMatch
 }
 
-type SuggestionMatch {
+type SuggestionMatch struct {
   Match string
   Tooltip string
 }
