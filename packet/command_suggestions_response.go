@@ -25,15 +25,15 @@ func (m *CommandSuggestionsResponse) Decode(r *Reader) error {
 
 func (m CommandSuggestionsResponse) Encode(w Writer) error {
 	w.VarInt(m.TransactionId)
-  w.VarInt(m.Start)
-  w.VarInt(m.Length)
-  w.VarInt(int32(len(m.Matches))
+  	w.VarInt(m.Start)
+ 	w.VarInt(m.Length)
+  	w.VarInt(int32(len(m.Matches)))
   for _, match := range m.Matches {
     w.String(match.Match)
     w.Bool(match.Tooltip != "")
     if match.Tooltip != "" {
       	msg := chat.NewMessage(m.Tooltip)
-	      w.String(msg.String())
+	w.String(msg.String())
     }
   }
 	return nil
