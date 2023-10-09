@@ -32,7 +32,7 @@ func (m CommandSuggestionsResponse) Encode(w Writer) error {
     w.String(match.Match)
     w.Bool(match.Tooltip != "")
     if match.Tooltip != "" {
-      	msg := chat.NewMessage(m.Tooltip)
+      	msg := chat.NewMessage(match.Tooltip)
 	w.String(msg.String())
     }
   }
