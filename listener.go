@@ -173,7 +173,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 	if l.key == nil {
 		var uuid [16]byte
-		newUUIDv3(ls.Name, uuid[:])
+		newUUIDv3(ls.Name, uuid)
 		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
 		return nil
 	}
@@ -313,13 +313,11 @@ func twosComplement(p []byte) {
 	}
 }
 
-func newUUIDv3(name string, out []byte) {
+func newUUIDv3(name string, out [16]byte) {
 	h := md5.New()
 	h.Write([]byte("OfflinePlayer:" + name))
-	id := h.Sum(nil)
+	h.Sum(out[:])
 
-	id[6] = (id[6] & 0x0f) | uint8((3&0xf)<<4)
-	id[8] = (id[8] & 0x3f) | 0x80 // RFC 4122 variant
-
-	copy(out, id)
+	out[6] = (out[6] & 0x0f) | uint8((3&0xf)<<4)
+	out[8] = (out[8] & 0x3f) | 0x80 // RFC 4122 variant
 }
