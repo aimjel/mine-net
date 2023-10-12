@@ -28,7 +28,7 @@ func (e *SpawnEntity) Encode(w Writer) error {
 	_ = w.Uint8(e.Pitch)
 	_ = w.Uint8(e.Yaw)
 	_ = w.Uint8(e.HeadYaw)
-	_ = w.Int32(e.Data)
+	_ = w.VarInt(e.Data)
 	_ = w.Int16(e.VelocityX)
 	_ = w.Int16(e.VelocityY)
 	return w.Int16(e.VelocityZ)
