@@ -5,13 +5,13 @@ type SpawnEntity struct {
 	UUID                            [16]byte
 	Type                            int32
 	X, Y, Z                         float64
-	Pitch, Yaw                      byte
-	Delta                           int32
+	Pitch, Yaw, HeadYaw                      byte
+	Data                           int32
 	VelocityX, VelocityY, VelocityZ int16
 }
 
 func (e *SpawnEntity) ID() int32 {
-	return 0x00
+	return 0x01
 }
 
 func (e *SpawnEntity) Decode(r *Reader) error {
@@ -27,7 +27,8 @@ func (e *SpawnEntity) Encode(w Writer) error {
 	_ = w.Float64(e.Z)
 	_ = w.Uint8(e.Pitch)
 	_ = w.Uint8(e.Yaw)
-	_ = w.Int32(e.Delta)
+	_ = w.Uint8(e.HeadYaw)
+	_ = w.Int32(e.Data)
 	_ = w.Int16(e.VelocityX)
 	_ = w.Int16(e.VelocityY)
 	return w.Int16(e.VelocityZ)
