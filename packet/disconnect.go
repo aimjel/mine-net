@@ -19,12 +19,9 @@ func (l *DisconnectLogin) Decode(r *Reader) error {
 }
 
 func (l DisconnectLogin) Encode(w Writer) error {
-	b, err := json.Marshal(chat.NewMessage(l.Reason))
-	if err != nil {
-		return fmt.Errorf("%v marshaling disconnect(login) reason", err)
-	}
+	msg := chat.NewMessage(l.Reason)
 
-	return w.ByteArray(b)
+	return w.String(b.String())
 }
 
 type DisconnectPlay struct {
