@@ -2,7 +2,7 @@ package packet
 
 type EntityEvent struct {
    EntityID int32
-   Status byte
+   Status int8
 }
 
 func (c EntityEvent) ID() int32 {
@@ -10,11 +10,11 @@ func (c EntityEvent) ID() int32 {
 }
 
 func (c *EntityEvent) Decode(r *Reader) error {
-  r.VarInt(&c.EntityID)
-	return r.Uint8(&c.Status)
+  r.Int32(&c.EntityID)
+	return r.Int8(&c.Status)
 }
 
 func (c EntityEvent) Encode(w Writer) error {
-  w.VarInt(c.EntityID)
-	return w.Uint8(c.Status)
+  w.Int32(c.EntityID)
+	return w.Int8(c.Status)
 }
