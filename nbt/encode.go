@@ -18,7 +18,7 @@ func NewEncoder(w io.Writer) *Encoder {
 
 func (e *Encoder) Encode(v any) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Struct {
+	if rv.Kind() == reflect.Struct || rv.Kind() == reflect.Map {
 		//writes the nameless compound
 		if _, err := e.w.Write([]byte{10, 0, 0}); err != nil {
 			return err
@@ -30,13 +30,20 @@ func (e *Encoder) Encode(v any) error {
 func (e *Encoder) encode(v reflect.Value) error {
 	switch v.Kind() {
 
+	case reflect.Bool:
+		if v.Bool() {
+			e.w.Write([]byte{1})
+		} else {
+			e.w.Write([]byte{0})
+		}
+
 	case reflect.Int8:
 		e.w.Write([]byte{byte(v.Int())})
 
 	case reflect.Int16:
 		e.write16(int(v.Int()))
 
-	case reflect.Int32:
+	case reflect.Int, reflect.Int32:
 		e.write32(int(v.Int()))
 
 	case reflect.Int64:
@@ -191,13 +198,13 @@ func (e *Encoder) write64(x int64) {
 func nbtId(v reflect.Type) byte {
 	switch v.Kind() {
 
-	case reflect.Int8:
+	case reflect.Int8, reflect.Bool:
 		return tagByte
 
 	case reflect.Int16:
 		return tagShort
 
-	case reflect.Int32:
+	case reflect.Int, reflect.Int32:
 		return tagInt
 
 	case reflect.Int64:
@@ -232,5 +239,6 @@ func nbtId(v reflect.Type) byte {
 		}
 	}
 
+	fmt.Println(v.String())
 	panic("shouldnt happen")
 }

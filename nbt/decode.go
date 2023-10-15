@@ -28,10 +28,19 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 	switch id {
 
 	case tagByte:
-		if v.Kind() != reflect.Int8 {
+		switch v.Kind() {
+
+		default:
 			return fmt.Errorf("nbt: cannot marshal byte tag into %v", v.Kind())
+
+		case reflect.Int8:
+			v.SetInt(int64(d.readByte()))
+
+		case reflect.Bool:
+			if d.readByte() == 1 {
+				v.SetBool(true)
+			}
 		}
-		v.SetInt(int64(d.readByte()))
 
 	case tagShort:
 		if v.Kind() != reflect.Int16 {
@@ -40,9 +49,10 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 		v.SetInt(int64(d.readShort()))
 
 	case tagInt:
-		if v.Kind() != reflect.Int32 {
+		if v.Kind() != reflect.Int32 && v.Kind() != reflect.Int {
 			return fmt.Errorf("nbt: cannot marshal int tag into %v", v.Kind())
 		}
+
 		v.SetInt(int64(d.readInt()))
 
 	case tagLong:
@@ -85,7 +95,7 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 		switch v.Kind() {
 
 		case reflect.Map:
-			d.unmarshalCompoundMap(v)
+			return d.unmarshalCompoundMap(v)
 
 		case reflect.Struct:
 			m := nameTags.Get().(map[string]nameTagMetaData)
@@ -127,19 +137,39 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 	return nil
 }
 
-func (d *decoder) unmarshalCompoundMap(v reflect.Value) {
+func (d *decoder) unmarshalCompoundMap(v reflect.Value) error {
 	if v.IsNil() {
 		v.Set(reflect.MakeMap(v.Type()))
 	}
 	for {
 		id := d.readByte()
 		if id == tagEnd {
-			return
+			return nil
 		}
 
 		name := strings.Clone(d.readUnsafeString())
 
 		switch id {
+		default:
+			fmt.Println("cant unmarshal", tagName(id), "in map")
+
+		case tagList:
+			x := reflect.New(v.Type().Elem())
+
+			if err := d.unmarshal(x.Elem(), tagList); err != nil {
+				return fmt.Errorf("%v unmarshalling %v in compound map", err, name)
+			}
+
+			v.SetMapIndex(reflect.ValueOf(name), x.Elem())
+
+		case tagCompound:
+			x := reflect.New(v.Type().Elem())
+
+			if err := d.unmarshal(x.Elem(), tagCompound); err != nil {
+				return fmt.Errorf("%v unmarshalling %v in compound map", err, name)
+			}
+
+			v.SetMapIndex(reflect.ValueOf(name), x.Elem())
 
 		case tagString:
 			value := strings.Clone(d.readUnsafeString())
