@@ -251,7 +251,9 @@ func (l *Listener) handleLogin(c *Conn) error {
 	c.name, c.properties = data.Name, data.Properties
 
 	if n := copy(c.uuid[:], uuid); n != 16 {
-		return fmt.Errorf("expected 16 bytes from uuid got %v", n)
+		c.SendPacket(&packet.DisconnectLogin{Reason: l.cfg.Messages.OnlineMode})
+		c.Close()
+		return nil
 	}
 	return nil
 }
