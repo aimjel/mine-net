@@ -252,8 +252,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 	if n := copy(c.uuid[:], uuid); n != 16 {
 		c.SendPacket(&packet.DisconnectLogin{Reason: l.cfg.Messages.OnlineMode})
-		c.Close(nil)
-		return nil
+		return fmt.Error("offline player on online server")
 	}
 	return nil
 }
