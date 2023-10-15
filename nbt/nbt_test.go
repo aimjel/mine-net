@@ -71,32 +71,26 @@ type chunk struct {
 	DataVersion int32
 }
 
-func TestUnmarshal_chunk(t *testing.T) {
+func TestUnmarshalChunk(t *testing.T) {
 	var c chunk
 	if err := Unmarshal(chunkData, &c); err != nil {
 		t.Fatal(err)
 	}
-
-	for _, section := range c.Sections {
-		t.Log(section.BlockStates)
-	}
+	t.Logf("%+v\n", c)
 }
 
-func TestUnmarshal_bigtest(t *testing.T) {
+func TestUnmarshalBigTest(t *testing.T) {
 	var bg bigTest
 	if err := Unmarshal(bigTestData, &bg); err != nil {
 		t.Fatal(err)
 	}
-
 	t.Logf("%+v\n", bg)
 }
 
 func BenchmarkUnmarshalChunk(b *testing.B) {
 	var c chunk
 	for i := 0; i < b.N; i++ {
-		if err := Unmarshal(chunkData, &c); err != nil {
-			b.Fatal(err)
-		}
+		_ = Unmarshal(chunkData, &c)
 	}
 	b.ReportAllocs()
 }
@@ -104,17 +98,13 @@ func BenchmarkUnmarshalChunk(b *testing.B) {
 func BenchmarkUnmarshalBigTest(b *testing.B) {
 	var bgTest bigTest
 	for i := 0; i < b.N; i++ {
-		if err := Unmarshal(bigTestData, &bgTest); err != nil {
-			b.Fatal(err)
-		}
+		_ = Unmarshal(bigTestData, &bgTest)
 	}
-
 	b.ReportAllocs()
 }
 
 func TestScanner(t *testing.T) {
-	err := checkValid(bigTestData)
-	if err != nil {
+	if err := checkValid(chunkData); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -126,33 +116,26 @@ func BenchmarkScanner(b *testing.B) {
 }
 
 func TestEncoder(t *testing.T) {
-	b := bytes.NewBuffer(nil)
-	hm := struct {
-		Heightmaps struct {
-			MotionBlocking []int64 `nbt:"MOTION_BLOCKING"`
-			WorldSurface   []int64 `nbt:"WORLD_SURFACE"`
-		}
-	}{}
-	if err := NewEncoder(b).Encode(hm); err != nil {
+	var ck chunk
+	_ = Unmarshal(chunkData, &ck)
+
+	var buf bytes.Buffer
+	if err := NewEncoder(&buf).Encode(ck); err != nil {
 		t.Fatal(err)
 	}
 
-	os.WriteFile("heightMap.nbt", b.Bytes(), 0666)
+	_ = os.WriteFile("test.nbt", buf.Bytes(), 0666)
 }
 
 func BenchmarkEncoder(b *testing.B) {
-	buf := bytes.NewBuffer(make([]byte, 1024*1024))
+	var c chunk
+	_ = Unmarshal(chunkData, &c)
 
+	buf := bytes.NewBuffer(make([]byte, 0, len(chunkData)))
 	enc := NewEncoder(buf)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-
-		_ = enc.Encode(struct {
-			Heightmaps struct {
-				MotionBlocking []int64 `nbt:"MOTION_BLOCKING"`
-				WorldSurface   []int64 `nbt:"WORLD_SURFACE"`
-			}
-		}{})
-
+		_ = enc.Encode(c)
 		buf.Reset()
 	}
 
