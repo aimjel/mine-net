@@ -124,6 +124,9 @@ func TestEncoder(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := checkValid(buf.Bytes()); err != nil {
+		t.Fatal(err)
+	}
 	_ = os.WriteFile("test.nbt", buf.Bytes(), 0666)
 }
 

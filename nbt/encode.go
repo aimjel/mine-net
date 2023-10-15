@@ -3,6 +3,7 @@ package nbt
 import (
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 	"unsafe"
 )
@@ -40,6 +41,12 @@ func (e *Encoder) encode(v reflect.Value) error {
 
 	case reflect.Int64:
 		e.write64(v.Int())
+
+	case reflect.Float32:
+		e.write32(int(math.Float32bits(float32(v.Float()))))
+
+	case reflect.Float64:
+		e.write32(int(math.Float64bits(v.Float())))
 
 	case reflect.String:
 		e.writeString(v.String())
@@ -112,7 +119,7 @@ func (e *Encoder) encode(v reflect.Value) error {
 				//extracts the value hiding behind the interface
 				fv = v.Elem()
 			}
-			if fv.Kind() == reflect.Map {
+			if fv.Kind() == reflect.Map || fv.Kind() == reflect.Slice {
 				if fv.IsNil() {
 					continue
 				}
@@ -140,7 +147,7 @@ func (e *Encoder) encode(v reflect.Value) error {
 				val = val.Elem()
 			}
 
-			if val.Kind() == reflect.Map {
+			if val.Kind() == reflect.Map || val.Kind() == reflect.Slice {
 				if val.IsNil() {
 					continue
 				}
@@ -160,6 +167,7 @@ func (e *Encoder) encodeNameTag(v reflect.Value, name string) error {
 	_, _ = e.w.Write([]byte{nbtId(v.Type())})
 	e.writeString(name)
 
+	fmt.Println(name, nbtId(v.Type()))
 	return e.encode(v)
 }
 
