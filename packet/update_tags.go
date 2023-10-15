@@ -18,11 +18,11 @@ func (*UpdateTags) ID() int32 {
 	return 0x6E
 }
 
-func (*UpdateTags) Decode(*packet.Reader) error {
+func (*UpdateTags) Decode(*Reader) error {
 	return nil
 }
 
-func (s UpdateTags) Encode(w packet.Writer) error {
+func (s UpdateTags) Encode(w Writer) error {
 	w.VarInt(int32(len(s.Tags)))
 	for _, t := range s.Tags {
 		w.String(t.Type)
