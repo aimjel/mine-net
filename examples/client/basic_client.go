@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ func main() {
 	bundles := make([][]int32, 0)
 	bundle := make([]int32, 0)
 	var inBundle bool
+	packets := make([]int32, 0, 100)
 	for {
 		pk, err := c.ReadPacket()
 		if err != nil {
@@ -31,24 +33,11 @@ func main() {
 			panic(err)
 		}
 
+		packets = append(packets, pk.ID())
+
 		if uk, ok := pk.(packet.Unknown); ok {
-			if pk.ID() == 0x52 {
-				fmt.Println(uk.Payload)
-			}
-
-			if pk.ID() == 0x24 {
-				var x int32
-				rd := packet.NewReader(uk.Payload)
-				rd.VarInt(&x) //id
-
-				rd.Int32(&x) //x
-				xcord := x
-				rd.Int32(&x) //x
-				zcord := x
-
-				if xcord == 0 && zcord == 0 {
-					os.WriteFile("chunk.0.0.bin", uk.Payload, 0666)
-				}
+			if pk.ID() == 0x12 {
+				os.WriteFile("damage_event.text", []byte(hex.Dump(uk.Payload)), 0666)
 			}
 
 			id := strconv.FormatInt(int64(uk.Id), 16)
@@ -89,6 +78,7 @@ func main() {
 		}
 	}
 
+	fmt.Println(packets)
 	stats, _ := json.MarshalIndent(m, "", "    ")
 	os.WriteFile("stats.json", stats, 0666)
 }

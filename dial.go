@@ -63,8 +63,7 @@ func doLogin(c *Conn, address, username string) error {
 			_ = rd.VarInt(&id) //reads the id
 			sc.Decode(rd)
 
-			c.dec.EnableDecompression()
-			c.enc.EnableCompression(int(sc.Threshold))
+			c.enableCompression(sc.Threshold)
 			fmt.Println("set compression packet", sc.Threshold)
 			break
 		}

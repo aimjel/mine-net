@@ -10,13 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/aimjel/minecraft/protocol/types"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
 )
 
 type ListenConfig struct {
@@ -131,10 +131,18 @@ func (l *Listener) handle(conn *net.TCPConn) {
 			c.Close(fmt.Errorf("%v while handling login", err))
 		} else {
 			if x := l.cfg.CompressionThreshold; x != -1 {
-				c.enableCompression(x)
+				if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
+					c.Close(fmt.Errorf("%v sending set compression", err))
+				} else {
+					c.enableCompression(x)
+				}
 			}
 
-			if c.SendPacket(&packet.LoginSuccess{Info: *c.Info}) != nil {
+			if c.SendPacket(&packet.LoginSuccess{
+				Name:       c.name,
+				UUID:       c.uuid,
+				Properties: c.properties,
+			}) != nil {
 				c.Close(fmt.Errorf("%v while sending login success packet in login", err))
 			} else {
 				c.pool = &basicPool{}
@@ -174,7 +182,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 	if l.key == nil {
 		var uuid [16]byte
 		newUUIDv3(ls.Name, uuid[:])
-		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
+		c.name, c.uuid = ls.Name, uuid
 		return nil
 	}
 
@@ -225,13 +233,9 @@ func (l *Listener) handleLogin(c *Conn) error {
 	}
 
 	var data struct {
-		Id         string `json:"id"`
-		Name       string `json:"name"`
-		Properties []struct {
-			Name      string `json:"name"`
-			Value     string `json:"value"`
-			Signature string `json:"signature"`
-		} `json:"properties"`
+		Id         string           `json:"id"`
+		Name       string           `json:"name"`
+		Properties []types.Property `json:"properties"`
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&data); err != nil && err != io.EOF {
@@ -244,13 +248,9 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	c.Info = &player.Info{Name: data.Name, Properties: []struct {
-		Name      string
-		Value     string
-		Signature string
-	}(data.Properties)}
+	c.name, c.properties = data.Name, data.Properties
 
-	if n := copy(c.Info.UUID[:], uuid); n != 16 {
+	if n := copy(c.uuid[:], uuid); n != 16 {
 		return fmt.Errorf("expected 16 bytes from uuid got %v", n)
 	}
 	return nil

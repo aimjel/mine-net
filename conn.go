@@ -4,8 +4,8 @@ import (
 	"crypto/aes"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
 	"github.com/aimjel/minecraft/protocol"
+	"github.com/aimjel/minecraft/protocol/types"
 	"net"
 	"sync"
 )
@@ -19,10 +19,27 @@ type Conn struct {
 
 	pool Pool
 
-	Info *player.Info
-
 	//encMu protects the Encoder from data races if two goroutines try to write a packet
 	encMu sync.Mutex
+
+	//name is the clients in-game name
+	name string
+
+	uuid [16]byte
+
+	properties []types.Property
+}
+
+func (c *Conn) Name() string {
+	return c.name
+}
+
+func (c *Conn) UUID() [16]byte {
+	return c.uuid
+}
+
+func (c *Conn) Properties() []types.Property {
+	return c.properties
 }
 
 func newConn(c *net.TCPConn) *Conn {
@@ -136,10 +153,6 @@ func (c *Conn) enableEncryption(sharedSecret []byte) error {
 }
 
 func (c *Conn) enableCompression(threshold int32) {
-	if err := c.SendPacket(&packet.SetCompression{Threshold: threshold}); err != nil {
-		panic(err)
-	}
-
 	c.dec.EnableDecompression()
 	c.enc.EnableCompression(int(threshold))
 }

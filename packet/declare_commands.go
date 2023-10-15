@@ -1,12 +1,12 @@
 package packet
 
 import (
-	"fmt"
+	"github.com/aimjel/minecraft/protocol/types"
 	"unsafe"
 )
 
 type DeclareCommands struct {
-	Nodes []Node
+	Nodes []types.CommandNode
 
 	RootIndex int32
 }
@@ -21,7 +21,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 		return err
 	}
 
-	d.Nodes = make([]Node, length)
+	d.Nodes = make([]types.CommandNode, length)
 	for i := int32(0); i < length; i++ {
 		n := &d.Nodes[i]
 
@@ -160,7 +160,6 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 			case 3: //integer
 				_ = w.Uint8(n.Properties.Flags)
-				fmt.Printf("brigadier:integer flags %08b\n", n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = w.Int32(*(*int32)(unsafe.Pointer(&n.Properties.Min)))
 				}
@@ -194,18 +193,4 @@ func (d *DeclareCommands) Encode(w Writer) error {
 	}
 
 	return w.VarInt(d.RootIndex)
-}
-
-type Node struct {
-	Flags        uint8
-	Children     []int32
-	RedirectNode int32
-	Name         string
-	ParserID     int32
-	Properties   struct {
-		Flags      uint8
-		Min, Max   uint64 //min and max stores the bits of the actual data type
-		Identifier string
-	}
-	SuggestionsType string
 }

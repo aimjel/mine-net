@@ -1,9 +1,12 @@
 package packet
 
-import "github.com/aimjel/minecraft/player"
+import "github.com/aimjel/minecraft/protocol/types"
 
 type LoginSuccess struct {
-	player.Info
+	UUID [16]byte
+	Name string
+
+	Properties []types.Property
 }
 
 func (s LoginSuccess) ID() int32 {
@@ -16,11 +19,7 @@ func (s *LoginSuccess) Decode(r *Reader) error {
 
 	var length int32
 	_ = r.VarInt(&length)
-	prpty := make([]struct {
-		Name      string
-		Value     string
-		Signature string
-	}, length)
+	prpty := make([]types.Property, length)
 
 	for i := int32(0); i < length; i++ {
 		p := prpty[i]

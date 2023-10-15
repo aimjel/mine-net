@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"github.com/aimjel/minecraft/protocol/types"
 	"unsafe"
 )
 
@@ -12,7 +13,7 @@ type ChunkData struct {
 		WorldSurface   []int64 `nbt:"WORLD_SURFACE"`
 	}
 
-	Sections []Section
+	Sections []types.ChunkSection
 
 	BlockEntities []struct {
 		PackedXZ byte
@@ -170,30 +171,6 @@ func (d ChunkData) Encode(w Writer) error {
 		}
 	}
 	return nil
-}
-
-type Section struct {
-	BlockCount uint16
-
-	BlockStates struct {
-		BitsPerEntry uint8
-		//entries global ids
-		Entries []int32
-
-		Data []int64
-	}
-
-	Biomes struct {
-		BitsPerEntry uint8
-		//entries global ids
-		Entries []int32
-
-		Data []int64
-	}
-
-	SkyLight []int8
-
-	BlockLight []int8
 }
 
 type bitSet struct {

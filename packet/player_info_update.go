@@ -1,12 +1,12 @@
 package packet
 
 import (
-	"github.com/aimjel/minecraft/player"
+	"github.com/aimjel/minecraft/protocol/types"
 )
 
 type PlayerInfoUpdate struct {
 	Actions byte
-	Players []player.Info
+	Players []types.PlayerInfo
 }
 
 func (i *PlayerInfoUpdate) ID() int32 {

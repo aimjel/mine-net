@@ -1,15 +1,11 @@
-package player
+package types
 
-type Info struct {
+type PlayerInfo struct {
 	UUID [16]byte
 
 	Name string
 
-	Properties []struct {
-		Name      string
-		Value     string
-		Signature string
-	}
+	Properties []Property
 
 	GameMode       int32
 	Ping           int32
