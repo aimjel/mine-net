@@ -9,7 +9,7 @@ func (s SwingArmServer) ID() int32 {
 }
 
 func (s *SwingArmServer) Decode(r *Reader) error {
-  return r.VarInt(&s.Hand)
+	return r.VarInt(&s.Hand)
 }
 
 func (s SwingArmServer) Encode(w Writer) error {

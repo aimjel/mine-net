@@ -1,9 +1,9 @@
 package packet
 
 type PlayerCommandServer struct {
-  EntityID int32
-  ActionID int32
-  JumpBoost int32
+	EntityID  int32
+	ActionID  int32
+	JumpBoost int32
 }
 
 func (m PlayerCommandServer) ID() int32 {

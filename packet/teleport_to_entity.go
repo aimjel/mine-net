@@ -1,7 +1,7 @@
 package packet
 
 type TeleportToEntityServer struct {
-  Player [16]byte
+	Player [16]byte
 }
 
 func (s TeleportToEntityServer) ID() int32 {
@@ -9,7 +9,7 @@ func (s TeleportToEntityServer) ID() int32 {
 }
 
 func (s *TeleportToEntityServer) Decode(r *Reader) error {
-  return r.UUID(&s.Player)
+	return r.UUID(&s.Player)
 }
 
 func (s TeleportToEntityServer) Encode(w Writer) error {

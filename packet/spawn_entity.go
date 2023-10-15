@@ -5,8 +5,8 @@ type SpawnEntity struct {
 	UUID                            [16]byte
 	Type                            int32
 	X, Y, Z                         float64
-	Pitch, Yaw, HeadYaw                      byte
-	Data                           int32
+	Pitch, Yaw, HeadYaw             byte
+	Data                            int32
 	VelocityX, VelocityY, VelocityZ int16
 }
 

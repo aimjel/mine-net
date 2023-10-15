@@ -1,8 +1,8 @@
 package packet
 
 type CommandSuggestionsRequest struct {
-	TransactionId   int32
-  Text string
+	TransactionId int32
+	Text          string
 }
 
 func (m CommandSuggestionsRequest) ID() int32 {

@@ -1,7 +1,7 @@
 package packet
 
 type ClientCommandServer struct {
-  ActionID int32
+	ActionID int32
 }
 
 func (m ClientCommandServer) ID() int32 {
@@ -9,7 +9,7 @@ func (m ClientCommandServer) ID() int32 {
 }
 
 func (m *ClientCommandServer) Decode(r *Reader) error {
-  return r.VarInt(&m.ActionID)
+	return r.VarInt(&m.ActionID)
 }
 
 func (m ClientCommandServer) Encode(w Writer) error {
