@@ -166,8 +166,6 @@ func (e *Encoder) encode(v reflect.Value) error {
 func (e *Encoder) encodeNameTag(v reflect.Value, name string) error {
 	_, _ = e.w.Write([]byte{nbtId(v.Type())})
 	e.writeString(name)
-
-	fmt.Println(name, nbtId(v.Type()))
 	return e.encode(v)
 }
 
