@@ -1,6 +1,7 @@
 package minecraft
 
 import (
+	"bytes"
 	"crypto/aes"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
@@ -16,6 +17,8 @@ type Conn struct {
 	dec *protocol.Decoder
 
 	enc *protocol.Encoder
+	//buf which encoder writes to
+	buf *bytes.Buffer
 
 	pool Pool
 
@@ -43,12 +46,14 @@ func (c *Conn) Properties() []types.Property {
 }
 
 func newConn(c *net.TCPConn) *Conn {
+	b := bytes.NewBuffer(make([]byte, 0, 4096))
 	return &Conn{
 		tcpCn: c,
 
 		dec: protocol.NewDecoder(c),
 
-		enc: protocol.NewEncoder(),
+		enc: protocol.NewEncoder(b),
+		buf: b,
 	}
 }
 
@@ -107,8 +112,8 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 
-	if err := c.enc.EncodePacket(pk); err != nil {
-		return err
+	if err := c.writePacket(pk); err != nil {
+		return fmt.Errorf("%w writing %+v to buffer", err, pk)
 	}
 
 	data := c.enc.Flush()
@@ -127,7 +132,23 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 func (c *Conn) WritePacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
-	return c.enc.EncodePacket(pk)
+	return c.writePacket(pk)
+}
+
+func (c *Conn) writePacket(pk packet.Packet) error {
+	start := c.buf.Len() //records the start of the packet data
+	pw := packet.NewWriter(c.buf)
+
+	//ignore errors since writing to a bytes.Buffer object
+	//always returns nil
+	_ = pw.VarInt(pk.ID())
+	_ = pk.Encode(pw)
+
+	end := c.buf.Len()
+
+	c.buf.Truncate(start)
+
+	return c.enc.EncodePacket(c.buf.Bytes()[start:end])
 }
 
 func (c *Conn) FlushPackets() error {
