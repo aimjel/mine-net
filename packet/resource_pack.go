@@ -25,8 +25,9 @@ func (c ResourcePack) Encode(w Writer) error {
   w.Bool(c.Forced)
   if c.Prompt != "" {
     w.Bool(true)
-    w.String(msg)
+    w.String(msg.String())
   } else {
     w.Bool(false)
   }
+	return nil
 }
