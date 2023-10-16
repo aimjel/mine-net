@@ -61,7 +61,7 @@ func (e *Encoder) encode(v reflect.Value) error {
 	case reflect.Slice:
 		if v.Len() == 0 {
 			_, _ = e.w.Write([]byte{0, 0})
-			return
+			return nil
 		}
 		switch v.Type().Elem().Kind() {
 		default:
