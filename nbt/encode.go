@@ -53,7 +53,7 @@ func (e *Encoder) encode(v reflect.Value) error {
 		e.write32(int(math.Float32bits(float32(v.Float()))))
 
 	case reflect.Float64:
-		e.write32(int(math.Float64bits(v.Float())))
+		e.write64(int64(math.Float64bits(v.Float())))
 
 	case reflect.String:
 		e.writeString(v.String())
