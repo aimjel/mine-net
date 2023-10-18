@@ -173,8 +173,8 @@ func (r *Reader) ByteArray(x *[]byte) error {
 }
 
 func (r *Reader) FixedByteArray(x *[]byte) error {
-	b := r.buf[r.at : r.at+int(len(*x))]
-	r.at += int(length)
+	b := r.buf[r.at : r.at+len(*x)]
+	r.at += len(*x)
 
 	*x = b
 	return nil
