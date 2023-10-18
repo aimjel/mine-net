@@ -29,9 +29,10 @@ func (m *ChatMessageServer) Decode(r *Reader) error {
 	r.VarInt(&count)
 	m.AcknowledgedMessages = make([]int64, count)
 
-	for i := 0; i < count; i++ {
+	for i := int32(0); i < count; i++ {
 		r.Int64(&m.AcknowledgedMessages[i])
 	}
+	return nil
 }
 
 func (m ChatMessageServer) Encode(w Writer) error {
