@@ -36,7 +36,7 @@ func (m PlayerChatMessage) ID() int32 {
 
 func (m *PlayerChatMessage) Decode(r *Reader) error {
   // no way!!
-	return nil
+	return NotImplemented
 }
 
 func (m PlayerChatMessage) Encode(w Writer) error {
@@ -86,4 +86,5 @@ func (m PlayerChatMessage) Encode(w Writer) error {
   } else {
     w.Bool(false)
   }
+	return nil
 }
