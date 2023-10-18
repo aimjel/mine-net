@@ -53,8 +53,8 @@ func (m PlayerChatMessage) Encode(w Writer) error {
   w.Int64(m.Timestamp)
   w.Int64(m.Salt)
 
-  w.VarInt(len(m.PreviousMessages))
-  for _, p := range m.PreviousMesages {
+  w.VarInt(int32(len(m.PreviousMessages)))
+  for _, p := range m.PreviousMessages {
     w.VarInt(p.MessageID + 1)
     if p.MessageID + 1 == 0 {
       w.FixedByteArray(p.Signature)
@@ -67,7 +67,7 @@ func (m PlayerChatMessage) Encode(w Writer) error {
     w.String(msg.String())
     w.VarInt(m.FilterType)
     if m.FilterType == 2 {
-      w.VarInt(len(m.FilterTypeBits))
+      w.VarInt(int32(len(m.FilterTypeBits)))
       for _, b := range m.FilterTypeBits {
         w.Int64(b)
       }
