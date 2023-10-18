@@ -43,9 +43,11 @@ func (m PlayerChatMessage) Encode(w Writer) error {
 	w.UUID(m.Sender)
   w.VarInt(m.Index)
   if m.MessageSignature != nil {
+	  println("sig is present")
     w.Bool(true)
     w.FixedByteArray(m.MessageSignature)
   } else {
+	  println("sig is not present")
     w.Bool(false)
   }
 
@@ -53,6 +55,7 @@ func (m PlayerChatMessage) Encode(w Writer) error {
   w.Int64(m.Timestamp)
   w.Int64(m.Salt)
 
+	println(len(m.PreviousMessages), "prev msgs")
   w.VarInt(int32(len(m.PreviousMessages)))
   for _, p := range m.PreviousMessages {
     w.VarInt(p.MessageID + 1)
@@ -62,19 +65,22 @@ func (m PlayerChatMessage) Encode(w Writer) error {
   }
 
   if m.UnsignedContent != "" {
+	  println("unsign content is present")
     w.Bool(true)
     msg := chat.NewMessage(m.UnsignedContent)
     w.String(msg.String())
-    w.VarInt(m.FilterType)
+  } else {
+    w.Bool(false)
+	  println("unsign content isnt present")
+  }
+
+	    w.VarInt(m.FilterType)
     if m.FilterType == 2 {
       w.VarInt(int32(len(m.FilterTypeBits)))
       for _, b := range m.FilterTypeBits {
         w.Int64(b)
       }
     }
-  } else {
-    w.Bool(false)
-  }
 
   w.VarInt(m.ChatType)
   n := chat.NewMessage(m.NetworkName)
