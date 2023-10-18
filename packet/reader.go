@@ -171,6 +171,15 @@ func (r *Reader) ByteArray(x *[]byte) error {
 	*x = b
 	return nil
 }
+
+func (r *Reader) FixedByteArray(x *[]byte) error {
+	b := r.buf[r.at : r.at+int(len(*x))]
+	r.at += int(length)
+
+	*x = b
+	return nil
+}
+
 func (r *Reader) UUID(x *[16]byte) error {
 	if r.isEOF(16) {
 		return io.ErrUnexpectedEOF
