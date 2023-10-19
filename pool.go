@@ -19,6 +19,7 @@ func (b basicPool) Get(id int32) packet.Packet {
 }
 
 var serverBoundPlayPool = map[int32]func() packet.Packet{
+	0x03: func() packet.Packet { return &packet.MessageAcknowledgment{} },
 	0x04: func() packet.Packet { return &packet.ChatCommandServer{} },
 	0x05: func() packet.Packet { return &packet.ChatMessageServer{} },
 	0x06: func() packet.Packet { return &packet.PlayerSessionServer{} },
