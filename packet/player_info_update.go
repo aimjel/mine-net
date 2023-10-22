@@ -2,6 +2,7 @@ package packet
 
 import (
 	"github.com/aimjel/minecraft/protocol/types"
+	"github.com/aimjel/minecraft/chat"
 )
 
 type PlayerInfoUpdate struct {
@@ -68,7 +69,8 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 			//updates display name
 			_ = w.Bool(p.HasDisplayName)
 			if p.HasDisplayName {
-				_ = w.String(p.DisplayName)
+				msg := chat.NewMessage(p.DisplayName)
+				_ = w.String(msg.String())
 			}
 		}
 	}
