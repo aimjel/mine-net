@@ -21,7 +21,7 @@ func (c *EntitySoundEffect) Decode(r *Reader) error {
 
 func (c EntitySoundEffect) Encode(w Writer) error {
 	w.VarInt(c.SoundID + 1)
-  if c.SoundID + 1 = 0 {
+  if c.SoundID + 1 == 0 {
     w.String(c.SoundName)
     if !c.HasRange {
       w.Bool(false)
