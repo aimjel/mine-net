@@ -1,14 +1,10 @@
 package packet
 
 type PlayerSessionServer struct {
-	SessionID [16]byte
-  PublicKey PublicKey
-}
-
-type PublicKey struct {
-  ExpiresAt int64
-  PublicKey []byte
-  KeySignature []byte
+	SessionID    [16]byte
+	ExpiresAt    int64
+	PublicKey    []byte
+	KeySignature []byte
 }
 
 func (m PlayerSessionServer) ID() int32 {
@@ -17,14 +13,14 @@ func (m PlayerSessionServer) ID() int32 {
 
 func (m *PlayerSessionServer) Decode(r *Reader) error {
 	r.UUID(&m.SessionID)
-  r.Int64(&m.PublicKey.ExpiresAt)
-  r.ByteArray(&m.PublicKey.PublicKey)
-  return r.ByteArray(&m.PublicKey.KeySignature)
+	r.Int64(&m.ExpiresAt)
+	r.ByteArray(&m.PublicKey)
+	return r.ByteArray(&m.KeySignature)
 }
 
 func (m PlayerSessionServer) Encode(w Writer) error {
 	w.UUID(m.SessionID)
-  w.Int64(m.PublicKey.ExpiresAt)
-  w.ByteArray(m.PublicKey.PublicKey)
-  return w.ByteArray(m.PublicKey.KeySignature)
+	w.Int64(m.ExpiresAt)
+	w.ByteArray(m.PublicKey)
+	return w.ByteArray(m.KeySignature)
 }

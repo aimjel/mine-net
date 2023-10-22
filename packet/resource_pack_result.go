@@ -13,5 +13,5 @@ func (m *ResourcePackResult) Decode(r *Reader) error {
 }
 
 func (m ResourcePackResult) Encode(w Writer) error {
-  return w.VarInt(m.Result)
+	return w.VarInt(m.Result)
 }

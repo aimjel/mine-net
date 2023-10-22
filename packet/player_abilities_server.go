@@ -1,7 +1,7 @@
 package packet
 
 type PlayerAbilitiesServer struct {
-	Flags               byte
+	Flags byte
 }
 
 func (p PlayerAbilitiesServer) ID() int32 {

@@ -1,8 +1,8 @@
 package packet
 
 type BlockUpdate struct {
-    Location int64
-    BlockID int32
+	Location int64
+	BlockID  int32
 }
 
 func (c BlockUpdate) ID() int32 {

@@ -1,10 +1,10 @@
 package packet
 
 type ChatMessageServer struct {
-	Message string
-	Timestamp int64
-	Salt int64
-	Signature []byte
+	Message              string
+	Timestamp            int64
+	Salt                 int64
+	Signature            []byte
 	AcknowledgedMessages []int64
 }
 
@@ -16,7 +16,7 @@ func (m *ChatMessageServer) Decode(r *Reader) error {
 	r.String(&m.Message)
 	r.Int64(&m.Timestamp)
 	r.Int64(&m.Salt)
-	
+
 	var is bool
 	r.Bool(&is)
 
