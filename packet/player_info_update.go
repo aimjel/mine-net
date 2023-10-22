@@ -38,13 +38,11 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 		}
 
 		if i.Actions&0x02 != 0 {
-			//initialize chat
-			//has signature data
-			_ = w.Bool(false)
-			//chat session UUID
-			//expiry time
-			//public key
-			//signature
+			_ = w.Bool(p.KeySignature != nil)
+			_ = w.UUID(p.ChatSessionID)
+			_ = w.Uint64(uint64(p.ExpiresAt))
+			_ = w.ByteArray(p.PublicKey)
+			_ = w.ByteArray(p.KeySignature)
 		}
 
 		if i.Actions&0x04 != 0 {
