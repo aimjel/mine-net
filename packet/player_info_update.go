@@ -38,11 +38,15 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 		}
 
 		if i.Actions&0x02 != 0 {
-			_ = w.Bool(p.KeySignature != nil)
-			_ = w.UUID(p.ChatSessionID)
-			_ = w.Uint64(uint64(p.ExpiresAt))
-			_ = w.ByteArray(p.PublicKey)
-			_ = w.ByteArray(p.KeySignature)
+			if p.KeySignature == nil {
+				w.Bool(false)
+			} else {
+				w.Bool(true)
+				_ = w.UUID(p.ChatSessionID)
+				_ = w.Int64(p.ExpiresAt)
+				_ = w.ByteArray(p.PublicKey)
+				_ = w.ByteArray(p.KeySignature)
+			}
 		}
 
 		if i.Actions&0x04 != 0 {
