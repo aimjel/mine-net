@@ -39,8 +39,7 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x1E: func() packet.Packet { return &packet.PlayerCommandServer{} },
 
 	0x24: func() packet.Packet { return &packet.ResourcePackResult{} },
-
-	0x2b: func() packet.Packet { return &packet.CreateInventoryAction{} },
+	0x28: func() packet.Packet { return &packet.SetHeldItemServer{} },
 
 	0x2F: func() packet.Packet { return &packet.SwingArmServer{} },
 
