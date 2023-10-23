@@ -24,14 +24,14 @@ func (s *UpdateTags) Decode(r*Reader) error {
 	s.Tags = make([]TagType, int(length))
 	for _, t := range s.Tags {
 		r.String(&t.Type)
-		var length int32
-		r.VarInt(&length)
-		t.Tags = make([]Tag, int(length))
+		var length1 int32
+		r.VarInt(&length1)
+		t.Tags = make([]Tag, int(length1))
 		for _, tag := range t.Tags {
 			r.String(&tag.Name)
-			var length int32
-			r.VarInt(&length)
-			tag.Entries = make([]int32, int(length))
+			var length2 int32
+			r.VarInt(&length2)
+			tag.Entries = make([]int32, int(length2))
 			for _, e := range tag.Entries {
 				r.VarInt(&e)
 			}
