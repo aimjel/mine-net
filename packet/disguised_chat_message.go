@@ -14,7 +14,7 @@ func (m DisguisedChatMessage) ID() int32 {
 }
 
 func (m *DisguisedChatMessage) Decode(r *Reader) error {
-	return r.String(&m.Content)
+	return r.String(&m.Message)
 }
 
 func (m DisguisedChatMessage) Encode(w Writer) error {
@@ -28,4 +28,5 @@ func (m DisguisedChatMessage) Encode(w Writer) error {
     w.Bool(true)
     w.String(m.TargetName)
   }
+	return nil
 }
