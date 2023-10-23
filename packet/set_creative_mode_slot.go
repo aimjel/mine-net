@@ -9,6 +9,18 @@ type SetCreativeModeSlot struct {
 type Slot struct {
 	Count int8   
 	Id    int32
+	Tag SlotTag
+}
+
+type Enchantment struct {
+	Id    string
+	Level int16
+}
+
+type SlotTag struct {
+	Damage       int32    
+	RepairCost   int32       
+	Enchantments []Enchantment
 }
 
 func (c SetCreativeModeSlot) ID() int32 {
