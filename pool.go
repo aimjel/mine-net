@@ -40,6 +40,7 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 
 	0x24: func() packet.Packet { return &packet.ResourcePackResult{} },
 	0x28: func() packet.Packet { return &packet.SetHeldItemServer{} },
+	0x2b: func() packet.Packet { return &packet.SetCreativeModeSlot{} },
 
 	0x2F: func() packet.Packet { return &packet.SwingArmServer{} },
 
