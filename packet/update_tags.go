@@ -18,7 +18,25 @@ func (*UpdateTags) ID() int32 {
 	return 0x6E
 }
 
-func (*UpdateTags) Decode(*Reader) error {
+func (s *UpdateTags) Decode(r*Reader) error {
+	var length int32
+	r.VarInt(&length)
+	s.Tags = make([]TagType, int(length))
+	for _, t := range s.Tags {
+		r.String(&t.Type)
+		var length int32
+		r.VarInt(&length)
+		t.Tags = make([]Tag, int(length))
+		for _, tag := range t.Tags {
+			r.String(&tag.Name)
+			var length int32
+			r.VarInt(&length)
+			tag.Entries = make([]int32, int(length))
+			for _, e := range tag.Entries {
+				r.VarInt(&e)
+			}
+		}
+	}
 	return nil
 }
 
