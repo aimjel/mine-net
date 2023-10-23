@@ -13,10 +13,10 @@ func (m SetEquipment) ID() int32 {
 func (m *SetEquipment) Decode(r *Reader) error {
 	r.VarInt(&m.EntityID)
   r.Int8(&m.Slot)
-  r.Bool(&c.Item.Present)
-	if c.Item.Present {
-		r.VarInt(&c.Item.Id)
-		r.Int8(&c.Item.Count)
+  r.Bool(&m.Item.Present)
+	if m.Item.Present {
+		r.VarInt(&m.Item.Id)
+		r.Int8(&m.Item.Count)
 	}
   return nil
 }
@@ -24,11 +24,11 @@ func (m *SetEquipment) Decode(r *Reader) error {
 func (m SetEquipment) Encode(w Writer) error {
  	w.VarInt(m.EntityID)
   w.Int8(m.Slot)
-  w.Bool(c.Item.Present)
-	if c.Item.Present {
-		w.VarInt(c.Item.Id)
-		w.Int8(c.Item.Count)
-    w.Nbt2(c.Item.Tag)
+  w.Bool(m.Item.Present)
+	if m.Item.Present {
+		w.VarInt(m.Item.Id)
+		w.Int8(m.Item.Count)
+    w.Nbt2(m.Item.Tag)
 	}
   return nil
 }
