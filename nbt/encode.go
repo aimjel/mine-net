@@ -59,10 +59,6 @@ func (e *Encoder) encode(v reflect.Value) error {
 		e.writeString(v.String())
 
 	case reflect.Slice:
-		if v.Len() == 0 {
-			_, _ = e.w.Write([]byte{0, 0})
-			return nil
-		}
 		switch v.Type().Elem().Kind() {
 		default:
 			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
@@ -77,10 +73,6 @@ func (e *Encoder) encode(v reflect.Value) error {
 
 		case reflect.Slice:
 			ln := v.Len()
-			if ln == 0 {
-				_, _ = e.w.Write([]byte{0, 0})
-				return
-			}
 			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
 			e.write32(ln)
 
