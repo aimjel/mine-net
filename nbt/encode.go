@@ -76,8 +76,12 @@ func (e *Encoder) encode(v reflect.Value) error {
 			}
 
 		case reflect.Slice:
-			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
 			ln := v.Len()
+			if ln == 0 {
+				_, _ = e.w.Write([]byte{0, 0})
+				return
+			}
+			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
 			e.write32(ln)
 
 			for i := 0; i < ln; i++ {
