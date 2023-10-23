@@ -21,12 +21,14 @@ func (m DisguisedChatMessage) Encode(w Writer) error {
 	content := chat.NewMessage(m.Message)
 	w.String(content.String())
 	w.VarInt(m.ChatType)
-  w.String(m.ChatTypeName)
-  if m.TargetName != "" {
-    w.Bool(false)
-  } else {
-    w.Bool(true)
-    w.String(m.TargetName)
-  }
+	name := chat.NewMessage(m.ChatTypeName)
+	  w.String(name.String())
+	  if m.TargetName != "" {
+	    w.Bool(false)
+	  } else {
+	    w.Bool(true)
+		  target := chat.NewMessage(m.TargetName)
+	    w.String(target.String())
+	  }
 	return nil
 }
