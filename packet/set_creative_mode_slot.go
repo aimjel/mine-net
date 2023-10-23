@@ -7,6 +7,7 @@ type SetCreativeModeSlot struct {
 }
 
 type Slot struct {
+	Present bool
 	Count int8   
 	Id    int32
 	Tag SlotTag
@@ -29,9 +30,8 @@ func (c SetCreativeModeSlot) ID() int32 {
 
 func (c *SetCreativeModeSlot) Decode(r *Reader) error {
 	r.Int16(&c.Slot)
-	var present bool
-	r.Bool(&present)
-	if present {
+	r.Bool(&c.ClickedItem.Present)
+	if c.ClickedItem.Present {
 		r.VarInt(&c.ClickedItem.Id)
 		r.Int8(&c.ClickedItem.Count)
 	}
