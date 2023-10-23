@@ -16,7 +16,7 @@ func (s *SetContainerSlot) Encode(w Writer) error {
 	_ = w.VarInt(s.StateID)
 	_ = w.Int16(s.Slot)
 	_ = w.Bool(s.Data.Present)
-	if s.Present {
+	if s.Data.Present {
 		_ = w.VarInt(s.Data.Id)
 		_ = w.Int8(s.Data.Count)
 		return w.Nbt2(s.Data.Tag)
