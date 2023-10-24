@@ -14,14 +14,14 @@ type Slot struct {
 }
 
 type Enchantment struct {
-	Id    string
-	Level int16
+	Id    string `nbt:"id"`
+	Level int16  `nbt:"lvl"`
 }
 
 type SlotTag struct {
-	Damage       int32    
-	RepairCost   int32       
-	Enchantments []Enchantment
+	Damage       int32         `nbt:"Damage"`
+	RepairCost   int32         `nbt:"RepairCost"`
+	Enchantments []Enchantment `nbt:"Enchantments"`
 }
 
 func (c SetCreativeModeSlot) ID() int32 {
@@ -34,6 +34,7 @@ func (c *SetCreativeModeSlot) Decode(r *Reader) error {
 	if c.ClickedItem.Present {
 		r.VarInt(&c.ClickedItem.Id)
 		r.Int8(&c.ClickedItem.Count)
+		r.Nbt(&c.ClickedItem.Tag)
 	}
 	return nil
 }
