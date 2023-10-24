@@ -33,7 +33,7 @@ func (c *SetCreativeModeSlot) Decode(r *Reader) error {
 	if c.ClickedItem.Present {
 		r.VarInt(&c.ClickedItem.Id)
 		r.Int8(&c.ClickedItem.Count)
-		r.Nbt(&c.ClickedItem.Tag)
+		//r.Nbt(&c.ClickedItem.Tag)
 	}
 	return nil
 }
