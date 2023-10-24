@@ -46,7 +46,7 @@ func (m ChatCommandServer) Encode(w Writer) error {
 	w.String(m.Command)
 	w.Int64(m.Timestamp)
 	w.Int64(m.Salt)
-	w.VarInt(int32(len(m.ArgumentSignatures))
+	w.VarInt(int32(len(m.ArgumentSignatures)))
 	for _, a := range m.ArgumentSignatures {
 		w.String(a.Name)
 		w.FixedByteArray(a.Signature)
