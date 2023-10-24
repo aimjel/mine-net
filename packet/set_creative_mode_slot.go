@@ -3,7 +3,6 @@ package packet
 type SetCreativeModeSlot struct {
 	Slot int16
   	ClickedItem Slot
-  //TODO clicked item tag
 }
 
 type Slot struct {
