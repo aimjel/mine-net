@@ -180,10 +180,6 @@ func (r *Reader) FixedByteArray(x *[]byte) error {
 	return nil
 }
 
-func (w *Reader) Nbt(x any) error {
-	return nbt.NewDecoder(r.buf).Decode(x)
-}
-
 func (r *Reader) UUID(x *[16]byte) error {
 	if r.isEOF(16) {
 		return io.ErrUnexpectedEOF
