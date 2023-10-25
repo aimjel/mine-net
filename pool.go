@@ -26,6 +26,8 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x07: func() packet.Packet { return &packet.ClientCommandServer{} },
 	0x08: func() packet.Packet { return &packet.ClientSettings{} },
 	0x09: func() packet.Packet { return &packet.CommandSuggestionsRequest{} },
+	0x0B: func() packet.Packet { return &packet.ClickContainer{} },
+	
 	0x10: func() packet.Packet { return &packet.InteractServer{} },
 
 	0x12: func() packet.Packet { return &packet.KeepAlive{} },
