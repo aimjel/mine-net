@@ -82,7 +82,7 @@ func (enc *Encoder) compress(payload []byte) error {
 		return err
 	}
 
-	enc.writeHeader(buf.Len()+varIntSize(len(payload)), len(payload))
+	enc.writeHeader(buf.Len()+VarIntSize(len(payload)), len(payload))
 
 	enc.buf.Write(buf.Bytes())
 	return nil
@@ -116,8 +116,8 @@ func (enc *Encoder) writeHeader(pkLen, dataLen int) {
 	}
 }
 
-// varIntSize returns the number of bytes n takes up
-func varIntSize(n int) (i int) {
+// VarIntSize returns the number of bytes n takes up
+func VarIntSize(n int) (i int) {
 	for n >= 0x80 {
 		n >>= 7
 		i++

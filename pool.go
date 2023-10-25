@@ -52,8 +52,8 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x4d: func() packet.Packet { return &packet.HeldItemChange{} },
 }
 
-type nopPool struct{}
+type NopPool struct{}
 
-func (c nopPool) Get(id int32) packet.Packet {
+func (c NopPool) Get(int32) packet.Packet {
 	return nil
 }

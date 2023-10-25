@@ -20,7 +20,7 @@ type Conn struct {
 	//buf which encoder writes to
 	buf *bytes.Buffer
 
-	pool Pool
+	Pool Pool
 
 	//encMu protects the Encoder from data races if two goroutines try to write a packet
 	encMu sync.Mutex
@@ -54,6 +54,8 @@ func newConn(c *net.TCPConn) *Conn {
 
 		enc: protocol.NewEncoder(b),
 		buf: b,
+
+		Pool: NopPool{},
 	}
 }
 
@@ -63,18 +65,19 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 		return nil, err
 	}
 
-	pw := packet.NewReader(data)
+	reader := packet.NewReader(data)
 	var id int32
-	if err = pw.VarInt(&id); err != nil {
+	if err = reader.VarInt(&id); err != nil {
 		return nil, fmt.Errorf("%v decoding packet id", err)
 	}
 
-	pk := c.pool.Get(id)
+	pk := c.Pool.Get(id)
 	if pk == nil {
-		return packet.Unknown{Id: id, Payload: data}, nil
+		l := protocol.VarIntSize(int(id))
+		return packet.Unknown{Id: id, Payload: data[l:]}, nil
 	}
 
-	if err = pk.Decode(pw); err != nil {
+	if err = pk.Decode(reader); err != nil {
 		return nil, fmt.Errorf("%v decoding packet contents for %#v", err, pk)
 	}
 
