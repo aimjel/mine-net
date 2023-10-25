@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -76,7 +77,16 @@ func TestUnmarshalChunk(t *testing.T) {
 	if err := Unmarshal(chunkData, &c); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v\n", c)
+
+	var c2 chunk
+	err := NewDecoder(bytes.NewReader(chunkData)).Decode(&c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(c2, c) {
+		t.Fatal("corrupt decoding")
+	}
 }
 
 func TestUnmarshalBigTest(t *testing.T) {
@@ -91,6 +101,22 @@ func BenchmarkUnmarshalChunk(b *testing.B) {
 	var c chunk
 	for i := 0; i < b.N; i++ {
 		_ = Unmarshal(chunkData, &c)
+	}
+	b.ReportAllocs()
+}
+
+func BenchmarkDecoder_DecodeChunk(b *testing.B) {
+	var c chunk
+	rd := bytes.NewReader(chunkData)
+	dec := NewDecoder(rd)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = dec.Decode(&c)
+
+		b.StopTimer()
+		rd.Reset(chunkData)
+		b.StartTimer()
 	}
 	b.ReportAllocs()
 }

@@ -77,7 +77,6 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 		if v.Kind() != reflect.String {
 			return fmt.Errorf("nbt: cannot marshal string tag into %v", v.Kind())
 		}
-
 		v.SetString(strings.Clone(d.readUnsafeString()))
 
 	case tagList, tagByteArray, tagIntArray, tagLongArray:
@@ -100,9 +99,7 @@ func (d *decoder) unmarshal(v reflect.Value, id byte) error {
 		case reflect.Struct:
 			m := nameTags.Get().(map[string]nameTagMetaData)
 			defer func() {
-				for k := range m {
-					delete(m, k)
-				}
+				clear(m)
 				nameTags.Put(m)
 			}()
 			endPos := d.fillMap(m)
