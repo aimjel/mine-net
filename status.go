@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aimjel/minecraft/packet"
 	"image/png"
 	"math"
 	"os"
@@ -80,6 +81,24 @@ func (s *Status) loadIcon(buf *bytes.Buffer) error {
 
 func (s *Status) json() []byte {
 	return s.buf.Bytes()
+}
+
+func (s *Status) handleStatus(c *Conn) error {
+	var rq packet.Request
+	if err := c.DecodePacket(&rq); err != nil {
+		return err
+	}
+
+	if err := c.SendPacket(&packet.Response{JSON: s.json()}); err != nil {
+		return fmt.Errorf("%v writing response packet", err)
+	}
+
+	var pg packet.Ping
+	if err := c.DecodePacket(&pg); err != nil {
+		return fmt.Errorf("%v decoding ping packet", err)
+	}
+
+	return c.SendPacket(&packet.Pong{Payload: pg.Payload})
 }
 
 func versionName(protocol int) string {

@@ -105,72 +105,57 @@ func (l *Listener) handle(conn *net.TCPConn) {
 	c := newConn(conn)
 
 	var pk packet.Handshake
-	if err := c.DecodePacket(&pk); err != nil {
-		c.Close(err)
-		return
-	}
+	var err = c.DecodePacket(&pk)
 
 	switch pk.NextState {
 
 	case 0x01: //status
-		if err := l.handleStatus(c); err != nil && l.cfg.Status != nil {
-			c.Close(fmt.Errorf("%v while handling status", err))
+		if l.cfg.Status != nil {
+			if err = l.cfg.Status.handleStatus(c); err != nil {
+				c.Close(fmt.Errorf("%v while handling status", err))
+			}
 		}
 
 	case 0x02:
-		if pk.ProtocolVersion > int32(l.cfg.Status.s.Version.Protocol) {
-			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.cfg.Messages.ProtocolTooNew,
-			})
-		} else if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
-			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.cfg.Messages.ProtocolTooOld,
-			})
-		}
-		if err := l.handleLogin(c); err != nil {
-			c.Close(fmt.Errorf("%v while handling login", err))
-		} else {
-			if x := l.cfg.CompressionThreshold; x != -1 {
-				if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
-					c.Close(fmt.Errorf("%v sending set compression", err))
-				} else {
-					c.enableCompression(x)
-				}
+		if pk.ProtocolVersion != int32(l.cfg.Status.s.Version.Protocol) {
+			reason := l.cfg.Messages.ProtocolTooNew
+			if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
+				reason = l.cfg.Messages.ProtocolTooOld
 			}
 
-			if c.SendPacket(&packet.LoginSuccess{
+			err = c.SendPacket(&packet.DisconnectLogin{
+				Reason: reason,
+			})
+			break
+		}
+
+		if err = l.handleLogin(c); err == nil {
+			if x := l.cfg.CompressionThreshold; x >= 0 {
+				if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
+					err = fmt.Errorf("%v sending set compression", err)
+					break
+				}
+
+				c.enableCompression(x)
+			}
+
+			if err = c.SendPacket(&packet.LoginSuccess{
 				Name:       c.name,
 				UUID:       c.uuid,
 				Properties: c.properties,
-			}) != nil {
-				c.Close(fmt.Errorf("%v while sending login success packet in login", err))
-			} else {
-				c.pool = &basicPool{}
-				l.await <- c
-				return //return so it doesn't close the connection
+			}); err != nil {
+				err = fmt.Errorf("%v sending login success", err)
+				break
 			}
+
+			c.Pool = &basicPool{}
+			l.await <- c
+			return //return so it doesn't close the connection
 		}
+		err = fmt.Errorf("%v handling login state", err)
 	}
 
-	c.Close(nil)
-}
-
-func (l *Listener) handleStatus(c *Conn) error {
-	var rq packet.Request
-	if err := c.DecodePacket(&rq); err != nil {
-		return err
-	}
-
-	if err := c.SendPacket(&packet.Response{JSON: l.cfg.Status.json()}); err != nil {
-		return fmt.Errorf("%v writing response packet", err)
-	}
-
-	var pg packet.Ping
-	if err := c.DecodePacket(&pg); err != nil {
-		return fmt.Errorf("%v decoding ping packet", err)
-	}
-
-	return c.SendPacket(&packet.Pong{Payload: pg.Payload})
+	c.Close(err)
 }
 
 func (l *Listener) handleLogin(c *Conn) error {
@@ -203,9 +188,8 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	var (
-		sharedSecret, verifyToken []byte
-	)
+	var sharedSecret, verifyToken []byte
+
 	if sharedSecret, err = l.key.Decrypt(nil, encryptResp.SharedSecret, nil); err != nil {
 		return err
 	}
