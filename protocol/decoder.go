@@ -65,12 +65,13 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 	if err != nil {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			buf := dec.buffer(pkLen)
-			return buf.Bytes(), dec.r.readFull(buf, pkLen)
+			return buf.Bytes()[:pkLen], dec.r.readFull(buf, pkLen)
 		}
 	}
 
 	if dec.tmpInUse == false && dec.tmp != nil {
 		buffers.Put(dec.tmp)
+		dec.tmp = nil
 	}
 
 	return payload, err
@@ -108,6 +109,7 @@ func (dec *Decoder) decompress(len int) ([]byte, error) {
 func (dec *Decoder) buffer(size int) *bytes.Buffer {
 	dec.tmpInUse = true
 	if dec.tmp != nil {
+		dec.tmp.Grow(size)
 		dec.tmp.Reset()
 		return dec.tmp
 	}
