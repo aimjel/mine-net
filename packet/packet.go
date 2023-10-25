@@ -44,6 +44,6 @@ func (u Unknown) Decode(*Reader) error {
 	return nil
 }
 
-func (u Unknown) Encode(Writer) error {
-	return nil
+func (u Unknown) Encode(w Writer) error {
+	return w.FixedByteArray(u.Payload)
 }
