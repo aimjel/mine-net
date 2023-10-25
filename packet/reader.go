@@ -3,6 +3,7 @@ package packet
 import (
 	"errors"
 	"fmt"
+	"github.com/aimjel/minecraft/nbt"
 	"io"
 	"math"
 	"unsafe"
@@ -193,19 +194,13 @@ func (r *Reader) isEOF(n int) bool {
 	return r.at+n > len(r.buf)
 }
 
-func DecodeLocation(l uint64) (x int32, y int32, z int32) {
-	x = int32(l >> 38)
-	y = int32(l & 0xfff)
-	z = int32((l >> 12) & 0x3ffffff)
+func (r *Reader) Read(p []byte) (int, error) {
+	n := copy(p, r.buf)
+	r.at += n
 
-	if x >= 1<<25 {
-		x -= 1 << 26
-	}
-	if y >= 1<<11 {
-		y -= 1 << 12
-	}
-	if z >= 1<<25 {
-		z -= 1 << 26
-	}
-	return
+	return n, nil
+}
+
+func (r *Reader) Nbt(v any) error {
+	return nbt.NewDecoder(r).Decode(v)
 }

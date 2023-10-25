@@ -96,7 +96,7 @@ func (d ChunkData) Encode(w Writer) error {
 
 			_ = w.Uint8(s.BlockStates.BitsPerEntry)
 			_ = w.VarInt(s.BlockStates.Entries[0])
-			w.Uint8(0) //empty data array
+			_ = w.Uint8(0) //empty data array
 		} else {
 			_ = w.Uint16(5000) //TODO: Implement proper block count
 
