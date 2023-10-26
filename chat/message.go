@@ -7,7 +7,7 @@ import (
 )
 
 type Message struct {
-	Text string `json:"text,omitempty"`
+	Text string `json:"text"`
 
 	Color string `json:"color,omitempty"`
 
@@ -22,8 +22,8 @@ type Message struct {
 	Translate string    `json:"translate,omitempty"`
 	With      []Message `json:"with,omitempty"`
 
-	ClickEvent *ClickEvent `json:"click_event,omitempty"`
-	HoverEvent *HoverEvent `json:"hover_event,omitempty"`
+	ClickEvent ClickEvent `json:"clickEvent,omitempty"`
+	HoverEvent HoverEvent `json:"hoverEvent,omitempty"`
 }
 
 type ClickEvent struct {
@@ -33,13 +33,14 @@ type ClickEvent struct {
 
 type HoverEvent struct {
 	Action   string      `json:"action"`
-	Contents interface{} `json:"contents"`
+	Contents interface{} `json:"value"`
 }
 
 func NewMessage(s string) (m Message) {
 	var component Message
+	s = strings.ReplaceAll(s, "§", "&")
 	for i := 0; i < len(s); i++ {
-		if s[i] == '&' || s[i] == '§' {
+		if s[i] == '&' {
 			if i+1 == len(s) {
 				break
 			}
@@ -60,7 +61,7 @@ func NewMessage(s string) (m Message) {
 
 		var n int
 		for n = i; n < len(s); n++ {
-			if s[n] == '&' || s[n] == '§' {
+			if s[n] == '&' {
 				break
 			}
 		}
@@ -85,7 +86,7 @@ func (m *Message) String() string {
 
 // Opens the url for the player
 func (m Message) WithOpenURLClickEvent(url string) Message {
-	m.ClickEvent = &ClickEvent{
+	m.ClickEvent = ClickEvent{
 		Action: "open_url",
 		Value:  url,
 	}
@@ -93,9 +94,9 @@ func (m Message) WithOpenURLClickEvent(url string) Message {
 }
 
 // Causes the player to send the command
-// If not prefixed with "/", it will send the messsage
+// If not prefixed with '/', it will send the messsage
 func (m Message) WithRunCommandClickEvent(cmd string) Message {
-	m.ClickEvent = &ClickEvent{
+	m.ClickEvent = ClickEvent{
 		Action: "run_command",
 		Value:  cmd,
 	}
@@ -105,7 +106,7 @@ func (m Message) WithRunCommandClickEvent(cmd string) Message {
 // Fills the player's chat with the command
 // Also works with chat messages (no / prefix)
 func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
-	m.ClickEvent = &ClickEvent{
+	m.ClickEvent = ClickEvent{
 		Action: "suggest_command",
 		Value:  cmd,
 	}
@@ -114,7 +115,7 @@ func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
 
 // Shows the text
 func (m Message) WithShowTextHoverEvent(msg Message) Message {
-	m.HoverEvent = &HoverEvent{
+	m.HoverEvent = HoverEvent{
 		Action:   "show_text",
 		Contents: msg,
 	}
@@ -126,7 +127,7 @@ func (m Message) WithShowEntityHoverEvent(id string, name string, typ *string) M
 	if typ != nil {
 		text = strings.TrimPrefix(text, "}") + fmt.Sprintf(`, type:%s}`, *typ)
 	}
-	m.HoverEvent = &HoverEvent{
+	m.HoverEvent = HoverEvent{
 		Action:   "show_entity",
 		Contents: text,
 	}
