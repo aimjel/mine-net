@@ -1,9 +1,13 @@
 package chat
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 type Message struct {
-	Text string `json:"text"`
+	Text string `json:"text,omitempty"`
 
 	Color string `json:"color,omitempty"`
 
@@ -14,10 +18,25 @@ type Message struct {
 	Obfuscated    bool `json:"obfuscated,omitempty,string"`
 
 	Extra []Message `json:"extra,omitempty"`
+
+	Translate string    `json:"translate,omitempty"`
+	With      []Message `json:"with,omitempty"`
+
+	ClickEvent ClickEvent `json:"click_event,omitempty"`
+	HoverEvent HoverEvent `json:"hover_event,omitempty"`
+}
+
+type ClickEvent struct {
+	Action string `json:"action"`
+	Value  string `json:"value"`
+}
+
+type HoverEvent struct {
+	Action   string      `json:"action"`
+	Contents interface{} `json:"contents"`
 }
 
 func NewMessage(s string) (m Message) {
-
 	var component Message
 	for i := 0; i < len(s); i++ {
 		if s[i] == '&' {
@@ -62,6 +81,56 @@ func NewMessage(s string) (m Message) {
 func (m *Message) String() string {
 	v, _ := json.Marshal(m)
 	return string(v)
+}
+
+// Opens the url for the player
+func (m Message) WithOpenURLClickEvent(url string) Message {
+	m.ClickEvent = ClickEvent{
+		Action: "open_url",
+		Value:  url,
+	}
+	return m
+}
+
+// Causes the player to send the command
+// If not prefixed with "/", it will send the messsage
+func (m Message) WithRunCommandClickEvent(cmd string) Message {
+	m.ClickEvent = ClickEvent{
+		Action: "run_command",
+		Value:  cmd,
+	}
+	return m
+}
+
+// Fills the player's chat with the command
+// Also works with chat messages (no / prefix)
+func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
+	m.ClickEvent = ClickEvent{
+		Action: "suggest_command",
+		Value:  cmd,
+	}
+	return m
+}
+
+// Shows the text
+func (m Message) WithShowTextHoverEvent(msg Message) Message {
+	m.HoverEvent = HoverEvent{
+		Action:   "show_text",
+		Contents: msg,
+	}
+	return m
+}
+
+func (m Message) WithShowEntityHoverEvent(id string, name string, typ *string) Message {
+	text := fmt.Sprintf(`{id:%s,name:%s}`, id, name)
+	if typ != nil {
+		text = strings.TrimPrefix(text, "}") + fmt.Sprintf(`, type:%s}`, *typ)
+	}
+	m.HoverEvent = HoverEvent{
+		Action:   "show_entity",
+		Contents: text,
+	}
+	return m
 }
 
 func styles(b byte, msg *Message) bool {
@@ -146,4 +215,8 @@ func colors(b byte) string {
 	case 'r':
 		return "reset"
 	}
+}
+
+func Translate(msg string, with ...Message) Message {
+	return Message{Translate: msg, With: with}
 }
