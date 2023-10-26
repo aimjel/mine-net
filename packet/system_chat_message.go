@@ -3,7 +3,7 @@ package packet
 import "github.com/aimjel/minecraft/chat"
 
 type SystemChatMessage struct {
-	Content string
+	Message Message
 }
 
 func (m SystemChatMessage) ID() int32 {
@@ -11,11 +11,10 @@ func (m SystemChatMessage) ID() int32 {
 }
 
 func (m *SystemChatMessage) Decode(r *Reader) error {
-	return r.String(&m.Content)
+	return NotImplemented
 }
 
 func (m SystemChatMessage) Encode(w Writer) error {
-	content := chat.NewMessage(m.Content)
-	w.String(content.String())
+	w.String(m.Message.String())
 	return w.Bool(false)
 }
