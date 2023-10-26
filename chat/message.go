@@ -39,7 +39,7 @@ type HoverEvent struct {
 func NewMessage(s string) (m Message) {
 	var component Message
 	for i := 0; i < len(s); i++ {
-		if s[i] == '&' {
+		if s[i] == '&' || s[i] == '§' {
 			if i+1 == len(s) {
 				break
 			}
@@ -60,7 +60,7 @@ func NewMessage(s string) (m Message) {
 
 		var n int
 		for n = i; n < len(s); n++ {
-			if s[n] == '&' {
+			if s[n] == '&' || s[n] == '§' {
 				break
 			}
 		}
