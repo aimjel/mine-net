@@ -16,13 +16,13 @@ type PlayerChatMessage struct {
 	//Previous Messages
 	PreviousMessages []PreviousMessage
 	//Other
-	UnsignedContent string
+	UnsignedContent *chat.Message
 	FilterType      int32
 	FilterTypeBits  []int64
 	//Network Target
 	ChatType          int32
-	NetworkName       string
-	NetworkTargetName string
+	NetworkName       chat.Message
+	NetworkTargetName *chat.Message
 }
 
 type PreviousMessage struct {
@@ -61,10 +61,9 @@ func (m PlayerChatMessage) Encode(w Writer) error {
 		}
 	}
 
-	if m.UnsignedContent != "" {
+	if m.UnsignedContent != nil {
 		w.Bool(true)
-		msg := chat.NewMessage(m.UnsignedContent)
-		w.String(msg.String())
+		w.String(m.UnsignedContent.String())
 	} else {
 		w.Bool(false)
 	}
@@ -78,12 +77,10 @@ func (m PlayerChatMessage) Encode(w Writer) error {
 	}
 
 	w.VarInt(m.ChatType)
-	n := chat.NewMessage(m.NetworkName)
-	w.String(n.String())
-	if m.NetworkTargetName != "" {
+	w.String(m.NetworkName.String())
+	if m.NetworkTargetName != nil {
 		w.Bool(true)
-		t := chat.NewMessage(m.NetworkTargetName)
-		w.String(t.String())
+		w.String(m.NetworkTargetName.String())
 	} else {
 		w.Bool(false)
 	}

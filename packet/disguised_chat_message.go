@@ -3,10 +3,10 @@ package packet
 import "github.com/aimjel/minecraft/chat"
 
 type DisguisedChatMessage struct {
-	Message string
-  ChatType int32
-  ChatTypeName string
-  TargetName string
+	Message      chat.Message
+	ChatType     int32
+	ChatTypeName chat.Message
+	TargetName   *chat.Message
 }
 
 func (m DisguisedChatMessage) ID() int32 {
@@ -14,21 +14,18 @@ func (m DisguisedChatMessage) ID() int32 {
 }
 
 func (m *DisguisedChatMessage) Decode(r *Reader) error {
-	return r.String(&m.Message)
+	return NotImplemented
 }
 
 func (m DisguisedChatMessage) Encode(w Writer) error {
-	content := chat.NewMessage(m.Message)
-	w.String(content.String())
+	w.String(m.Message.String())
 	w.VarInt(m.ChatType)
-	name := chat.NewMessage(m.ChatTypeName)
-	  w.String(name.String())
-	  if m.TargetName != "" {
-	    w.Bool(false)
-	  } else {
-	    w.Bool(true)
-		  target := chat.NewMessage(m.TargetName)
-	    w.String(target.String())
-	  }
+	w.String(m.ChatTypeName.String())
+	if m.TargetName != nil {
+		w.Bool(false)
+	} else {
+		w.Bool(true)
+		w.String(m.TargetName.String())
+	}
 	return nil
 }

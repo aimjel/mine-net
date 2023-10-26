@@ -3,7 +3,7 @@ package packet
 import "github.com/aimjel/minecraft/chat"
 
 type SystemChatMessage struct {
-	Message Message
+	Message chat.Message
 }
 
 func (m SystemChatMessage) ID() int32 {
