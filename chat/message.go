@@ -138,7 +138,7 @@ func (m Message) WithShowEntityHoverEvent(id string, name string, typ *string) M
 	if typ != nil {
 		text = strings.TrimPrefix(text, "}") + fmt.Sprintf(`, type:%s}`, *typ)
 	}
-	m.HoverEvent = HoverEvent{
+	m.HoverEvent = &HoverEvent{
 		Action:   "show_entity",
 		Contents: text,
 	}
