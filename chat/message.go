@@ -113,6 +113,16 @@ func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
 	return m
 }
 
+// Copies the text to the player's clipboard
+func (m Message) WithCopyToClipboardClickEvent(text string) Message {
+	m.ClickEvent = ClickEvent{
+		Action: "copy_to_clipboard",
+		Value: text,
+	}
+	return m
+}
+
+
 // Shows the text
 func (m Message) WithShowTextHoverEvent(msg Message) Message {
 	m.HoverEvent = HoverEvent{

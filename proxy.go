@@ -13,13 +13,11 @@ type ProxyConfig struct {
 	// If value is nil, the proxy server will use the target servers status.
 	Status *Status
 
-	// OnReceive called when the client receives a packet from the server
-	// Returning false drops the packet, not sending it to the client.
-	OnReceive func(conn *Conn, pk packet.Packet) bool
+	// OnReceive called when a packet is received from the client or server.
+	// Returning false will drop the packet.
+	OnReceive func(conn *ProxyConn, pk packet.Packet, fromServer bool) bool
 
-	// OnSend called when the client sends a packet to the server
-	// Returning false drops the packet, not sending it to the server.
-	OnSend func(conn *Conn, pk packet.Packet) bool
+	canJoin bool
 }
 
 func (cfg *ProxyConfig) Listen(addr, targetAddr string) error {
@@ -46,7 +44,7 @@ func (cfg *ProxyConfig) Listen(addr, targetAddr string) error {
 	return nil
 }
 
-type proxyConn struct {
+type ProxyConn struct {
 	// dialConn is connected to the target server.
 	// Packets written by the target server
 	// are read from this connection.
@@ -59,8 +57,24 @@ type proxyConn struct {
 	targetAddr string
 }
 
+func (pc *ProxyConn) SendServerPacket(pk packet.Packet) error {
+	return pc.dialConn.SendPacket(pk)
+}
+
+func (pc *ProxyConn) SendClientPacket(pk packet.Packet) error {
+	return pc.conn.SendPacket(pk)
+}
+
+func (pc *ProxyConn) LocalAddr() net.Addr {
+	return pc.conn.RemoteAddr()
+}
+
+func (pc *ProxyConn) RemoteAddr() net.Addr {
+	return pc.dialConn.RemoteAddr()
+}
+
 func (cfg *ProxyConfig) handleConn(c *Conn, targetAddr string) {
-	proxyC := &proxyConn{
+	proxyC := &ProxyConn{
 		conn:       c,
 		targetAddr: targetAddr,
 	}
@@ -68,7 +82,7 @@ func (cfg *ProxyConfig) handleConn(c *Conn, targetAddr string) {
 	cfg.start(proxyC)
 }
 
-func (cfg *ProxyConfig) start(pc *proxyConn) {
+func (cfg *ProxyConfig) start(pc *ProxyConn) {
 	var hs packet.Handshake
 	if err := pc.conn.DecodePacket(&hs); err != nil {
 		fmt.Println("decode hs", err)
@@ -124,7 +138,7 @@ func (cfg *ProxyConfig) start(pc *proxyConn) {
 	}
 }
 
-func (cfg *ProxyConfig) handleLogin(pc *proxyConn) error {
+func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
 	var ls packet.LoginStart
 	if err := pc.conn.DecodePacket(&ls); err != nil {
 		return err
@@ -176,7 +190,9 @@ func (cfg *ProxyConfig) handleLogin(pc *proxyConn) error {
 	}
 }
 
-func (cfg *ProxyConfig) proxy(pc *proxyConn) {
+func (cfg *ProxyConfig) proxy(pc *ProxyConn) {
+	pc.conn.Pool = basicPool{}
+
 	go func() {
 		for {
 			pk, err := pc.dialConn.ReadPacket()
@@ -185,7 +201,9 @@ func (cfg *ProxyConfig) proxy(pc *proxyConn) {
 			}
 
 			if cfg.OnReceive != nil {
-				cfg.OnReceive(pc.dialConn, pk)
+				if !cfg.OnReceive(pc, pk, true) {
+					continue
+				}
 			}
 
 			if err = pc.conn.SendPacket(pk); err != nil {
@@ -201,8 +219,10 @@ func (cfg *ProxyConfig) proxy(pc *proxyConn) {
 			return
 		}
 
-		if cfg.OnSend != nil {
-			cfg.OnSend(pc.conn, pk)
+		if cfg.OnReceive != nil {
+			if !cfg.OnReceive(pc, pk, false) {
+				continue
+			}
 		}
 
 		if err = pc.dialConn.SendPacket(pk); err != nil {
