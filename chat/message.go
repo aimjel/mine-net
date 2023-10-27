@@ -66,8 +66,9 @@ func NewMessage(s string) (m Message) {
 			}
 		}
 
-		component.Text = &s[i:n]
-		if m.Text == "" {
+		x := s[i:n]
+		component.Text = &x
+		if m.Text == nil {
 			m = component
 		} else {
 			m.Extra = append(m.Extra, component)
