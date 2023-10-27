@@ -22,8 +22,8 @@ type Message struct {
 	Translate string    `json:"translate,omitempty"`
 	With      []Message `json:"with,omitempty"`
 
-	ClickEvent ClickEvent `json:"clickEvent,omitempty"`
-	HoverEvent HoverEvent `json:"hoverEvent,omitempty"`
+	ClickEvent *ClickEvent `json:"clickEvent,omitempty"`
+	HoverEvent *HoverEvent `json:"hoverEvent,omitempty"`
 }
 
 type ClickEvent struct {
@@ -87,7 +87,7 @@ func (m *Message) String() string {
 
 // Opens the url for the player
 func (m Message) WithOpenURLClickEvent(url string) Message {
-	m.ClickEvent = ClickEvent{
+	m.ClickEvent = &ClickEvent{
 		Action: "open_url",
 		Value:  url,
 	}
@@ -97,7 +97,7 @@ func (m Message) WithOpenURLClickEvent(url string) Message {
 // Causes the player to send the command
 // If not prefixed with '/', it will send the messsage
 func (m Message) WithRunCommandClickEvent(cmd string) Message {
-	m.ClickEvent = ClickEvent{
+	m.ClickEvent = &ClickEvent{
 		Action: "run_command",
 		Value:  cmd,
 	}
@@ -107,7 +107,7 @@ func (m Message) WithRunCommandClickEvent(cmd string) Message {
 // Fills the player's chat with the command
 // Also works with chat messages (no / prefix)
 func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
-	m.ClickEvent = ClickEvent{
+	m.ClickEvent = &ClickEvent{
 		Action: "suggest_command",
 		Value:  cmd,
 	}
@@ -116,7 +116,7 @@ func (m Message) WithSuggestCommandClickEvent(cmd string) Message {
 
 // Copies the text to the player's clipboard
 func (m Message) WithCopyToClipboardClickEvent(text string) Message {
-	m.ClickEvent = ClickEvent{
+	m.ClickEvent = &ClickEvent{
 		Action: "copy_to_clipboard",
 		Value: text,
 	}
@@ -126,7 +126,7 @@ func (m Message) WithCopyToClipboardClickEvent(text string) Message {
 
 // Shows the text
 func (m Message) WithShowTextHoverEvent(msg Message) Message {
-	m.HoverEvent = HoverEvent{
+	m.HoverEvent = &HoverEvent{
 		Action:   "show_text",
 		Contents: msg,
 	}
