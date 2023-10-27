@@ -36,8 +36,7 @@ type HoverEvent struct {
 	Contents interface{} `json:"value"`
 }
 
-func NewMessage(str string) (m Message) {
-	s := &str
+func NewMessage(s string) (m Message) {
 	var component Message
 	s = strings.ReplaceAll(s, "§", "&")
 	for i := 0; i < len(s); i++ {
@@ -67,7 +66,7 @@ func NewMessage(str string) (m Message) {
 			}
 		}
 
-		component.Text = s[i:n]
+		component.Text = &s[i:n]
 		if m.Text == "" {
 			m = component
 		} else {
