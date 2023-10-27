@@ -124,7 +124,7 @@ func (l *Listener) handle(conn *net.TCPConn) {
 			}
 
 			err = c.SendPacket(&packet.DisconnectLogin{
-				Reason: reason,
+				Reason: chat.NewMessage(reason),
 			})
 			break
 		}
@@ -235,7 +235,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 	c.name, c.properties = data.Name, data.Properties
 
 	if n := copy(c.uuid[:], uuid); n != 16 {
-		c.SendPacket(&packet.DisconnectLogin{Reason: l.cfg.Messages.OnlineMode})
+		c.SendPacket(&packet.DisconnectLogin{Reason: chat.NewMessage(l.cfg.Messages.OnlineMode)})
 		return fmt.Errorf("offline player on online server")
 	}
 	return nil
