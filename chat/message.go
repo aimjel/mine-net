@@ -7,7 +7,7 @@ import (
 )
 
 type Message struct {
-	Text string `json:"text"`
+	Text *string `json:"text,omitempty"`
 
 	Color string `json:"color,omitempty"`
 
@@ -36,7 +36,8 @@ type HoverEvent struct {
 	Contents interface{} `json:"value"`
 }
 
-func NewMessage(s string) (m Message) {
+func NewMessage(str string) (m Message) {
+	s := &str
 	var component Message
 	s = strings.ReplaceAll(s, "§", "&")
 	for i := 0; i < len(s); i++ {
