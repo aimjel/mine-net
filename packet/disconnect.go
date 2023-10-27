@@ -5,7 +5,7 @@ import (
 )
 
 type DisconnectLogin struct {
-	Reason string
+	Reason chat.Message
 }
 
 func (l DisconnectLogin) ID() int32 {
@@ -13,13 +13,11 @@ func (l DisconnectLogin) ID() int32 {
 }
 
 func (l *DisconnectLogin) Decode(r *Reader) error {
-	return r.String(&l.Reason)
+	return NotImplemented
 }
 
 func (l DisconnectLogin) Encode(w Writer) error {
-	msg := chat.NewMessage(l.Reason)
-
-	return w.String(msg.String())
+	return w.String(l.Reason.String())
 }
 
 type DisconnectPlay struct {

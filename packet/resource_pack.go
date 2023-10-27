@@ -6,7 +6,7 @@ type ResourcePack struct {
 	URL    string
 	Hash   string
 	Forced bool
-	Prompt string
+	Prompt *chat.Message
 }
 
 func (c ResourcePack) ID() int32 {
@@ -15,17 +15,16 @@ func (c ResourcePack) ID() int32 {
 
 func (c *ResourcePack) Decode(r *Reader) error {
 	//todo implement
-	return nil
+	return NotImplemented
 }
 
 func (c ResourcePack) Encode(w Writer) error {
-	msg := chat.NewMessage(c.Prompt)
 	w.String(c.URL)
 	w.String(c.Hash)
 	w.Bool(c.Forced)
-	if c.Prompt != "" {
+	if c.Prompt != nil {
 		w.Bool(true)
-		w.String(msg.String())
+		w.String(c.Prompt.String())
 	} else {
 		w.Bool(false)
 	}
