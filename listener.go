@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/chat"
 )
 
 type ListenConfig struct {
