@@ -27,14 +27,16 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 	0x08: func() packet.Packet { return &packet.ClientSettings{} },
 	0x09: func() packet.Packet { return &packet.CommandSuggestionsRequest{} },
 	0x0B: func() packet.Packet { return &packet.ClickContainer{} },
-	
+
 	0x10: func() packet.Packet { return &packet.InteractServer{} },
 
-	0x12: func() packet.Packet { return &packet.KeepAlive{} },
+	0x12: func() packet.Packet { return &packet.KeepAliveServer{} },
 	0x14: func() packet.Packet { return &packet.PlayerPosition{} },
 	0x15: func() packet.Packet { return &packet.PlayerPositionRotation{} },
 	0x16: func() packet.Packet { return &packet.PlayerRotation{} },
 	0x17: func() packet.Packet { return &packet.PlayerMovement{} },
+
+	0x19: func() packet.Packet { return &packet.PaddleBoat{} },
 
 	0x1C: func() packet.Packet { return &packet.PlayerAbilitiesServer{} },
 	0x1D: func() packet.Packet { return &packet.PlayerActionServer{} },
