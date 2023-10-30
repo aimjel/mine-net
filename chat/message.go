@@ -48,19 +48,19 @@ func NewMessage(s string) (m Message) {
 
 			t := s[i]
 			switch {
-
-			case t >= '0' && t <= '9' || t >= 'a' && t <= 'f' || t == 'r':
-				component.Color = colors(t)
-
-			case t >= 'k' && t <= 'o':
-				styles(t, &component)
 			case t == 'r':
-				component.Color = "white"
+				component.Color = "reset"
 				component.Bold = false
 				component.Italic = false
 				component.Underlined = false
 				component.Strikethrough = false
 				component.Obfuscated = false
+				
+			case t >= '0' && t <= '9' || t >= 'a' && t <= 'f':
+				component.Color = colors(t)
+
+			case t >= 'k' && t <= 'o':
+				styles(t, &component)
 			}
 
 			continue
@@ -230,9 +230,6 @@ func colors(b byte) string {
 
 	case 'f':
 		return "white"
-
-	case 'r':
-		return "reset"
 	}
 }
 
