@@ -55,7 +55,12 @@ func NewMessage(s string) (m Message) {
 			case t >= 'k' && t <= 'o':
 				styles(t, &component)
 			case t == 'r':
-				component.Color = ""
+				component.Color = "white"
+				component.Bold = false
+				component.Italic = false
+				component.Underlined = false
+				component.Strikethrough = false
+				component.Obfuscated = false
 			}
 
 			continue
