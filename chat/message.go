@@ -54,6 +54,8 @@ func NewMessage(s string) (m Message) {
 
 			case t >= 'k' && t <= 'o':
 				styles(t, &component)
+			case t == 'r':
+				component.Color = ""
 			}
 
 			continue
