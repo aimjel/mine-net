@@ -25,4 +25,5 @@ func (m ServerData) Encode(w Writer) error {
      w.ByteArray(m.Icon)
    }
    w.Bool(m.EnforcesSecureChat)
+   return nil
 }
