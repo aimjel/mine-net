@@ -14,7 +14,7 @@ type PlayerChatMessage struct {
 	Timestamp int64
 	Salt      int64
 	//Previous Messages
-	PreviousMessages []packet.PreviousMessage
+	PreviousMessages []PreviousMessage
 	//Other
 	UnsignedContent *chat.Message
 	FilterType      int32
@@ -50,7 +50,7 @@ func (m *PlayerChatMessage) Decode(r *Reader) error {
 
 	var l int32
 	r.VarInt(&l)
-	m.PreviousMessages = make([]packet.PreviousMessage, int(l))
+	m.PreviousMessages = make([]PreviousMessage, int(l))
 	for _, p := range m.PreviousMessages {
 		r.VarInt(&p.MessageID)
 		p.MessageID--
