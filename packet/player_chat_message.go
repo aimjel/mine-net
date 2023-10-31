@@ -88,7 +88,7 @@ func (m *PlayerChatMessage) Decode(r *Reader) error {
 		var targetName string
 		r.String(&targetName) // todo unmarshal chat
 	}
-	return packet.NotImplemented
+	return NotImplemented
 }
 
 func (m PlayerChatMessage) Encode(w Writer) error {
