@@ -26,13 +26,14 @@ type Status struct {
 	s *status
 }
 
-func NewStatus(version Version, max int, desc string) *Status {
+func NewStatus(version Version, max int, desc string, enforcesSecureChat, previewsChat bool) *Status {
 	var s status
 	if version.Text == "" {
 		version.Text = versionName(version.Protocol)
 	}
 	s.Version.Name, s.Version.Protocol = version.Text, version.Protocol
 	s.Players.Max, s.Description = max, chat.NewMessage(desc)
+	s.EnforcesSecureChat, s.PreviewsChat = enforcesSecureChat, previewsChat
 
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -131,4 +132,6 @@ type status struct {
 	} `json:"players"`
 	Description chat.Message `json:"description"`
 	Favicon     string       `json:"favicon,omitempty"`
+	EnforcesSecureChat bool  `json:"enforcesSecureChat"`
+	PreviewsChat bool  `json:"previewsChat"`
 }
