@@ -14,7 +14,7 @@ type PlayerChatMessage struct {
 	Timestamp int64
 	Salt      int64
 	//Previous Messages
-	PreviousMessages []PreviousMessage
+	PreviousMessages []packet.PreviousMessage
 	//Other
 	UnsignedContent *chat.Message
 	FilterType      int32
@@ -35,8 +35,60 @@ func (m PlayerChatMessage) ID() int32 {
 }
 
 func (m *PlayerChatMessage) Decode(r *Reader) error {
-	// no way!!
-	return NotImplemented
+	r.UUID(&m.Sender)
+	r.VarInt(&m.Index)
+	var hasSig bool
+	r.Bool(&hasSig)
+	if hasSig {
+		m.MessageSignature = make([]byte, 256)
+		r.FixedByteArray(&m.MessageSignature)
+	}
+
+	r.String(&m.Message)
+	r.Int64(&m.Timestamp)
+	r.Int64(&m.Salt)
+
+	var l int32
+	r.VarInt(&l)
+	m.PreviousMessages = make([]packet.PreviousMessage, int(l))
+	for _, p := range m.PreviousMessages {
+		r.VarInt(&p.MessageID)
+		p.MessageID--
+		if p.MessageID == 0 {
+			p.Signature = make([]byte, 256)
+			r.FixedByteArray(&p.Signature)
+		}
+	}
+
+	var hasUnsignContent bool
+	r.Bool(&hasUnsignContent)
+	if hasUnsignContent {
+		var str string // todo unmarshal chat
+		r.String(&str)
+	}
+
+	r.VarInt(&m.FilterType)
+	if m.FilterType == 2 {
+		var l int32
+		r.VarInt(&l)
+		m.FilterTypeBits = make([]int64, int(l))
+		for _, b := range m.FilterTypeBits {
+			r.Int64(&b)
+		}
+	}
+
+	r.VarInt(&m.ChatType)
+
+	var netName string
+	r.String(&netName) // todo unmarshal chat
+
+	var hasTargetName bool
+	r.Bool(&hasTargetName)
+	if hasTargetName {
+		var targetName string
+		r.String(&targetName) // todo unmarshal chat
+	}
+	return packet.NotImplemented
 }
 
 func (m PlayerChatMessage) Encode(w Writer) error {
