@@ -21,7 +21,7 @@ func (m DisguisedChatMessage) Encode(w Writer) error {
 	w.String(m.Message.String())
 	w.VarInt(m.ChatType)
 	w.String(m.ChatTypeName.String())
-	if m.TargetName != nil {
+	if m.TargetName == nil {
 		w.Bool(false)
 	} else {
 		w.Bool(true)
