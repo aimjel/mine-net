@@ -104,6 +104,8 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 
 			case 29: //score holder
 				_ = r.Uint8(&n.Properties.Flags)
+			case 41, 42, 43, 44: // some identifier
+				_ = r.String(&n.Properties.Identifier)
 			}
 		}
 
@@ -184,6 +186,8 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 			case 29: //score holder
 				_ = w.Uint8(n.Properties.Flags)
+			case 41, 42, 43, 44: // some identifier
+				_ = w.String(n.Properties.Identifier)
 			}
 		}
 
