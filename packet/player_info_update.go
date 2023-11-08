@@ -67,10 +67,9 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 
 		if i.Actions&0x20 != 0 {
 			//updates display name
-			_ = w.Bool(p.HasDisplayName)
-			if p.HasDisplayName {
-				msg := chat.NewMessage(p.DisplayName)
-				_ = w.String(msg.String())
+			_ = w.Bool(p.DisplayName != nil)
+			if p.DisplayName != nil {
+				_ = w.String(p.DisplayName.String())
 			}
 		}
 	}
