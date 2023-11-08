@@ -1,5 +1,7 @@
 package types
 
+import "github.com/aimjel/minecraft/chat"
+
 type PlayerInfo struct {
 	UUID [16]byte
 
@@ -9,8 +11,7 @@ type PlayerInfo struct {
 
 	GameMode       int32
 	Ping           int32
-	HasDisplayName bool
-	DisplayName    string
+	DisplayName *chat.Message
 
 	ChatSessionID [16]byte
 	ExpiresAt     int64
