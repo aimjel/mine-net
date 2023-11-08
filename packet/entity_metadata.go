@@ -12,7 +12,7 @@ type SetEntityMetadata struct {
 	Slot               *Slot
 	HandState          *int8
 	CustomName	   *chat.Message
-	IsCustomNameVisibile *bool
+	IsCustomNameVisible *bool
 }
 
 func (*SetEntityMetadata) ID() int32 {
