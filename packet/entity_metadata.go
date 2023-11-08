@@ -1,6 +1,8 @@
 package packet
 
-type PacketSetPlayerMetadata struct {
+import "github.com/aimjel/minecraft/chat"
+
+type SetEntityMetadata struct {
 	EntityID           int32
 	Pose               *int32
 	Data               *byte
@@ -9,17 +11,19 @@ type PacketSetPlayerMetadata struct {
 	MainHand           *int32
 	Slot               *Slot
 	HandState          *int8
+	CustomName	   *chat.Message
+	IsCustomNameVisibile *bool
 }
 
-func (*PacketSetPlayerMetadata) ID() int32 {
+func (*SetEntityMetadata) ID() int32 {
 	return 0x52
 }
 
-func (*PacketSetPlayerMetadata) Decode(*Reader) error {
+func (*SetEntityMetadata) Decode(*Reader) error {
 	return nil
 }
 
-func (s PacketSetPlayerMetadata) Encode(w Writer) error {
+func (s SetEntityMetadata) Encode(w Writer) error {
 	w.VarInt(s.EntityID)
 	if s.Pose != nil {
 		w.Uint8(6)
@@ -58,6 +62,17 @@ func (s PacketSetPlayerMetadata) Encode(w Writer) error {
 		w.Uint8(8)
 		w.Uint8(0)
 		w.Int8(*s.HandState)
+	}
+	if s.CustomName != nil {
+		w.Uint8(2)
+		w.VarInt(6)
+		w.Bool(true)
+		w.String(s.CustomName.String())
+	}
+	if s.IsCustomNameVisible != nil {
+		w.Uint8(3)
+		w.VarInt(8)
+		w.Bool(*s.IsCustomNameVisible)
 	}
 	return w.Uint8(0xFF)
 }
