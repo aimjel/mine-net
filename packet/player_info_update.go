@@ -2,7 +2,6 @@ package packet
 
 import (
 	"github.com/aimjel/minecraft/protocol/types"
-	"github.com/aimjel/minecraft/chat"
 )
 
 type PlayerInfoUpdate struct {
