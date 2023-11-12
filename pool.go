@@ -50,7 +50,7 @@ var serverBoundPlayPool = map[int32]func() packet.Packet{
 
 	0x30: func() packet.Packet { return &packet.TeleportToEntityServer{} },
 
-	0x31: func() packet.Packet { return &packet.PlayerBlockPlacement{} },
+	0x31: func() packet.Packet { return &packet.UseItemOnServer{} },
 	0x32: func() packet.Packet { return &packet.UseItem{} },
 
 	0x4d: func() packet.Packet { return &packet.HeldItemChange{} },
