@@ -1,7 +1,7 @@
 package packet
 
 type SetDefaultSpawnPosition struct {
-	Location uint64
+	Location int64
 	Angle    float32
 }
 
@@ -10,11 +10,11 @@ func (s SetDefaultSpawnPosition) ID() int32 {
 }
 
 func (s SetDefaultSpawnPosition) Decode(r *Reader) error {
-	//TODO implement me
-	panic("implement me")
+	_ = r.Int64(&s.Location)
+	return r.Float32(&s.Angle)
 }
 
 func (s SetDefaultSpawnPosition) Encode(w Writer) error {
-	_ = w.Uint64(s.Location)
+	_ = w.Int64(s.Location)
 	return w.Float32(s.Angle)
 }
