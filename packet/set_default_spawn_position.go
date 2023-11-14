@@ -1,7 +1,9 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/types"
+
 type SetDefaultSpawnPosition struct {
-	Location int64
+	Location types.Position
 	Angle    float32
 }
 
@@ -10,11 +12,11 @@ func (s SetDefaultSpawnPosition) ID() int32 {
 }
 
 func (s SetDefaultSpawnPosition) Decode(r *Reader) error {
-	_ = r.Int64(&s.Location)
+	_ = r.Int64((*int64)(&s.Location))
 	return r.Float32(&s.Angle)
 }
 
 func (s SetDefaultSpawnPosition) Encode(w Writer) error {
-	_ = w.Int64(s.Location)
+	_ = w.Int64(int64(s.Location))
 	return w.Float32(s.Angle)
 }
