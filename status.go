@@ -41,43 +41,49 @@ func NewStatus(version Version, max int, desc string, enforcesSecureChat, previe
 
 	st := &Status{enc: enc, buf: &buf, s: &s}
 
-	size := buf.Len() + 34 //34 for the favicon key and prepended info, including quotes and comma
-
-	b := bytes.NewBuffer(nil)
-	if err := st.loadIcon(b); err != nil {
+	if err := st.loadIcon(); err != nil {
 		return st
 	}
 
-	if size+b.Len() < math.MaxInt16 {
-		st.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b.Bytes())
-	}
-
-	buf.Reset()
-	enc.Encode(s)
 	return st
 }
 
-func (s *Status) loadIcon(buf *bytes.Buffer) error {
+func (s *Status) loadIcon() error {
 	f, err := os.Open("server-icon.png")
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, _ = f.Seek(0, 0)
 	m, err := png.Decode(f)
 	if err != nil {
 		return err
 	}
 
+	if b := m.Bounds(); b.Dy() != 64 || b.Dx() != 64 {
+		return fmt.Errorf("server-icon must be a 64x64")
+	}
+
 	var e png.Encoder
 	e.CompressionLevel = png.DefaultCompression
 
-	if err = e.Encode(buf, m); err != nil {
+	statusLen := s.buf.Len()
+	s.buf.Reset()
+
+	if err = e.Encode(s.buf, m); err != nil {
 		fmt.Printf("%v compressiong server icon", err)
 	}
 
-	return nil
+	prependedInfo := "\"favicon\": \"data:image/png;base64,\","
+	iconLen := len(prependedInfo) + base64.StdEncoding.EncodedLen(s.buf.Len())
+	if statusLen+iconLen > math.MaxInt16 {
+		return fmt.Errorf("server-icon file is too big")
+	}
+
+	s.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(s.buf.Bytes())
+	s.buf.Reset()
+
+	return s.enc.Encode(s.s)
 }
 
 func (s *Status) json() []byte {
@@ -130,8 +136,8 @@ type status struct {
 			Id   string `json:"id"`
 		} `json:"sample"`
 	} `json:"players"`
-	Description chat.Message `json:"description"`
-	Favicon     string       `json:"favicon,omitempty"`
-	EnforcesSecureChat bool  `json:"enforcesSecureChat"`
-	PreviewsChat bool  `json:"previewsChat"`
+	Description        chat.Message `json:"description"`
+	Favicon            string       `json:"favicon,omitempty"`
+	EnforcesSecureChat bool         `json:"enforcesSecureChat"`
+	PreviewsChat       bool         `json:"previewsChat"`
 }
