@@ -191,7 +191,7 @@ func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
 }
 
 func (cfg *ProxyConfig) proxy(pc *ProxyConn) {
-	pc.conn.Pool = basicPool{}
+	pc.conn.Pool = ServerBoundPool{}
 
 	go func() {
 		for {

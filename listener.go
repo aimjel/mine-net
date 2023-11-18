@@ -16,8 +16,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/packet"
 )
 
 type ListenConfig struct {
@@ -149,7 +149,7 @@ func (l *Listener) handle(conn *net.TCPConn) {
 				break
 			}
 
-			c.Pool = &basicPool{}
+			c.Pool = &ServerBoundPool{}
 			l.await <- c
 			return //return so it doesn't close the connection
 		}

@@ -8,9 +8,11 @@ type Pool interface {
 	Get(id int32) packet.Packet
 }
 
-type basicPool struct{}
+// ServerBoundPool implements the Pool interface and returns the server bound packets
+// for the play state.
+type ServerBoundPool struct{}
 
-func (b basicPool) Get(id int32) packet.Packet {
+func (b ServerBoundPool) Get(id int32) packet.Packet {
 	if fn, ok := serverBoundPlayPool[id]; ok {
 		return fn()
 	}
