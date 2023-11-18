@@ -2,9 +2,6 @@ package packet
 
 import _ "embed"
 
-//go:embed internal/data/dimension.nbt
-var dimensions []byte
-
 type JoinGame struct {
 	EntityID         int32
 	IsHardcore       bool
@@ -12,7 +9,7 @@ type JoinGame struct {
 	PreviousGameMode int8
 	DimensionNames   []string
 
-	//Registry codec
+	Registry []byte
 
 	DimensionType       string
 	DimensionName       string
@@ -47,7 +44,7 @@ func (g JoinGame) Encode(w Writer) error {
 	for _, world := range g.DimensionNames {
 		_ = w.String(world)
 	}
-	_ = w.Nbt(dimensions)
+	_ = w.FixedByteArray(g.Registry)
 	_ = w.String(g.DimensionType)
 	_ = w.String(g.DimensionName)
 	_ = w.Int64(g.HashedSeed)
