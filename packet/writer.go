@@ -147,6 +147,11 @@ func (w *Writer) UUID(x [16]byte) error {
 	return err
 }
 
+func (w *Writer) Nbt(x []byte) error {
+	_, err := w.buf.Write(x)
+	return err
+}
+
 func (w *Writer) Nbt2(x any) error {
 	return nbt.NewEncoder(w.buf).Encode(x)
 }
