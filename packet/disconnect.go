@@ -16,7 +16,7 @@ func (l *DisconnectLogin) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (l DisconnectLogin) Encode(w Writer) error {
+func (l DisconnectLogin) Encode(w *Writer) error {
 	return w.String(l.Reason.String())
 }
 

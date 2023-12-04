@@ -44,6 +44,6 @@ func (c *ClickContainer) Decode(r *Reader) error {
 	return nil
 }
 
-func (c ClickContainer) Encode(w Writer) error {
+func (c ClickContainer) Encode(w *Writer) error {
 	return w.Uint8(c.WindowID)
 }

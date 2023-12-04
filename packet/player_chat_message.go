@@ -91,7 +91,7 @@ func (m *PlayerChatMessage) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (m PlayerChatMessage) Encode(w Writer) error {
+func (m PlayerChatMessage) Encode(w *Writer) error {
 	w.UUID(m.Sender)
 	w.VarInt(m.Index)
 	if m.MessageSignature != nil {

@@ -11,8 +11,8 @@ type Writer struct {
 	buf *bytes.Buffer
 }
 
-func NewWriter(b *bytes.Buffer) Writer {
-	return Writer{buf: b}
+func NewWriter(b *bytes.Buffer) *Writer {
+	return &Writer{buf: b}
 }
 
 func (w *Writer) Bool(x bool) error {
@@ -144,11 +144,6 @@ func (w *Writer) Int64Array(x []int64) error {
 
 func (w *Writer) UUID(x [16]byte) error {
 	_, err := w.buf.Write(x[:])
-	return err
-}
-
-func (w *Writer) Nbt(x []byte) error {
-	_, err := w.buf.Write(x)
 	return err
 }
 

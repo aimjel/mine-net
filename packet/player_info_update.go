@@ -17,7 +17,7 @@ func (i *PlayerInfoUpdate) Decode(r *Reader) error {
 	panic("implement me")
 }
 
-func (i *PlayerInfoUpdate) Encode(w Writer) error {
+func (i *PlayerInfoUpdate) Encode(w *Writer) error {
 	_ = w.Uint8(i.Actions)
 	_ = w.VarInt(int32(len(i.Players)))
 	for _, p := range i.Players {

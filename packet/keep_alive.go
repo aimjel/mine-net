@@ -8,7 +8,7 @@ func (a *KeepAliveServer) ID() int32 {
 	return 0x12
 }
 
-func (a *KeepAliveServer) Encode(w Writer) error {
+func (a *KeepAliveServer) Encode(w *Writer) error {
 	return w.Int64(a.PayloadID)
 }
 
@@ -24,7 +24,7 @@ func (a *KeepAliveClient) ID() int32 {
 	return 0x23
 }
 
-func (a *KeepAliveClient) Encode(w Writer) error {
+func (a *KeepAliveClient) Encode(w *Writer) error {
 	return w.Int64(a.PayloadID)
 }
 

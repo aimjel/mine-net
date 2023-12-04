@@ -20,7 +20,7 @@ func (c *WorldEvent) Decode(r *Reader) error {
 	return r.Bool(&c.DisableRelativeVolume)
 }
 
-func (c WorldEvent) Encode(w Writer) error {
+func (c WorldEvent) Encode(w *Writer) error {
 	w.Int32(c.Event)
 	w.Int64(int64(c.Location))
 	w.Int32(c.Data)

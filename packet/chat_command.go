@@ -1,15 +1,15 @@
 package packet
 
 type ChatCommandServer struct {
-	Command   string
-	Timestamp int64
-	Salt      int64
-	ArgumentSignatures []Argument
+	Command              string
+	Timestamp            int64
+	Salt                 int64
+	ArgumentSignatures   []Argument
 	AcknowledgedMessages []int64
 }
 
 type Argument struct {
-	Name string
+	Name      string
 	Signature []byte
 }
 
@@ -29,7 +29,7 @@ func (m *ChatCommandServer) Decode(r *Reader) error {
 		r.String(&name)
 		r.FixedByteArray(&sig)
 		m.ArgumentSignatures = append(m.ArgumentSignatures, Argument{
-			Name: name,
+			Name:      name,
 			Signature: sig,
 		})
 	}
@@ -42,7 +42,7 @@ func (m *ChatCommandServer) Decode(r *Reader) error {
 	return nil
 }
 
-func (m ChatCommandServer) Encode(w Writer) error {
+func (m ChatCommandServer) Encode(w *Writer) error {
 	w.String(m.Command)
 	w.Int64(m.Timestamp)
 	w.Int64(m.Salt)

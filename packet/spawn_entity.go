@@ -18,7 +18,7 @@ func (e *SpawnEntity) Decode(r *Reader) error {
 	return nil
 }
 
-func (e *SpawnEntity) Encode(w Writer) error {
+func (e *SpawnEntity) Encode(w *Writer) error {
 	_ = w.VarInt(e.EntityID)
 	_ = w.UUID(e.UUID)
 	_ = w.VarInt(e.Type)

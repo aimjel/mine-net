@@ -16,7 +16,7 @@ func (m *PlayerCommandServer) Decode(r *Reader) error {
 	return r.VarInt(&m.JumpBoost)
 }
 
-func (m PlayerCommandServer) Encode(w Writer) error {
+func (m PlayerCommandServer) Encode(w *Writer) error {
 	w.VarInt(m.EntityID)
 	w.VarInt(m.ActionID)
 	return w.VarInt(m.JumpBoost)

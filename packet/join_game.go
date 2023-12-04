@@ -38,7 +38,7 @@ func (g *JoinGame) Decode(r *Reader) error {
 	return nil
 }
 
-func (g JoinGame) Encode(w Writer) error {
+func (g JoinGame) Encode(w *Writer) error {
 	_ = w.Int32(g.EntityID)
 	_ = w.Bool(g.IsHardcore)
 	_ = w.Uint8(g.GameMode)
@@ -49,11 +49,11 @@ func (g JoinGame) Encode(w Writer) error {
 	}
 
 	if g.Registry != nil {
-		_ = w.Nbt(g.Registry)
+		_ = w.FixedByteArray(g.Registry)
 	} else {
-		_ = w.Nbt(dimensions)
+		_ = w.FixedByteArray(dimensions)
 	}
-	
+
 	_ = w.String(g.DimensionType)
 	_ = w.String(g.DimensionName)
 	_ = w.Int64(g.HashedSeed)

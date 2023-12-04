@@ -3,15 +3,15 @@ package packet
 import "github.com/aimjel/minecraft/chat"
 
 type SetEntityMetadata struct {
-	EntityID           int32
-	Pose               *int32
-	Data               *byte
-	Health             *float32
-	DisplayedSkinParts *uint8
-	MainHand           *int32
-	Slot               *Slot
-	HandState          *int8
-	CustomName	   *chat.Message
+	EntityID            int32
+	Pose                *int32
+	Data                *byte
+	Health              *float32
+	DisplayedSkinParts  *uint8
+	MainHand            *int32
+	Slot                *Slot
+	HandState           *int8
+	CustomName          *chat.Message
 	IsCustomNameVisible *bool
 }
 
@@ -23,7 +23,7 @@ func (*SetEntityMetadata) Decode(*Reader) error {
 	return nil
 }
 
-func (s SetEntityMetadata) Encode(w Writer) error {
+func (s SetEntityMetadata) Encode(w *Writer) error {
 	w.VarInt(s.EntityID)
 	if s.Pose != nil {
 		w.Uint8(6)
@@ -51,12 +51,12 @@ func (s SetEntityMetadata) Encode(w Writer) error {
 		w.Uint8(uint8(*s.MainHand))
 	}
 	if s.Slot != nil {
-			w.Uint8(8)
-			w.Uint8(7)
-			w.Bool(true)
-			w.VarInt(s.Slot.Id)
-			w.Int8(s.Slot.Count)
-			w.Nbt2(s.Slot.Tag)
+		w.Uint8(8)
+		w.Uint8(7)
+		w.Bool(true)
+		w.VarInt(s.Slot.Id)
+		w.Int8(s.Slot.Count)
+		w.Nbt2(s.Slot.Tag)
 	}
 	if s.HandState != nil {
 		w.Uint8(8)

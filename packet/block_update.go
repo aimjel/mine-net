@@ -16,7 +16,7 @@ func (c *BlockUpdate) Decode(r *Reader) error {
 	return r.VarInt(&c.BlockID)
 }
 
-func (c BlockUpdate) Encode(w Writer) error {
+func (c BlockUpdate) Encode(w *Writer) error {
 	w.Int64(int64(c.Location))
 	return w.VarInt(c.BlockID)
 }

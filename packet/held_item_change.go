@@ -8,7 +8,7 @@ func (c *HeldItemChange) ID() int32 {
 	return 0x25
 }
 
-func (c *HeldItemChange) Encode(w Writer) error {
+func (c *HeldItemChange) Encode(w *Writer) error {
 	return w.Int16(c.Slot)
 }
 

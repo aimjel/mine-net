@@ -13,7 +13,7 @@ func (c *UnloadChunk) Decode(r *Reader) error {
 	return r.VarInt(&c.ChunkZ)
 }
 
-func (c UnloadChunk) Encode(w Writer) error {
+func (c UnloadChunk) Encode(w *Writer) error {
 	_ = w.Int32(c.ChunkX)
 	return w.Int32(c.ChunkZ)
 }

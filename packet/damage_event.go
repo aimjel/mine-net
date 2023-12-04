@@ -18,7 +18,7 @@ func (l *DamageEvent) Decode(r *Reader) error {
 	return nil
 }
 
-func (l DamageEvent) Encode(w Writer) error {
+func (l DamageEvent) Encode(w *Writer) error {
 	w.VarInt(l.EntityID)
 	w.VarInt(l.SourceTypeID)
 	w.VarInt(l.SourceCauseID)

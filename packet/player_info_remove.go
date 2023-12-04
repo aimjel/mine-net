@@ -13,7 +13,7 @@ func (p PlayerInfoRemove) Decode(r *Reader) error {
 	panic("implement me")
 }
 
-func (p PlayerInfoRemove) Encode(w Writer) error {
+func (p PlayerInfoRemove) Encode(w *Writer) error {
 	_ = w.VarInt(int32(len(p.UUIDs)))
 
 	var err error

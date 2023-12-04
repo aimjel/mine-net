@@ -11,6 +11,6 @@ func (p PlayerAbilitiesServer) ID() int32 {
 func (p *PlayerAbilitiesServer) Decode(r *Reader) error {
 	return r.Uint8(&p.Flags)
 }
-func (p PlayerAbilitiesServer) Encode(w Writer) error {
+func (p PlayerAbilitiesServer) Encode(w *Writer) error {
 	return w.Uint8(p.Flags)
 }

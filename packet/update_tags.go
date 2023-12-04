@@ -18,7 +18,7 @@ func (*UpdateTags) ID() int32 {
 	return 0x6E
 }
 
-func (s *UpdateTags) Decode(r*Reader) error {
+func (s *UpdateTags) Decode(r *Reader) error {
 	var length int32
 	r.VarInt(&length)
 	s.Tags = make([]TagType, int(length))
@@ -40,7 +40,7 @@ func (s *UpdateTags) Decode(r*Reader) error {
 	return nil
 }
 
-func (s UpdateTags) Encode(w Writer) error {
+func (s UpdateTags) Encode(w *Writer) error {
 	w.VarInt(int32(len(s.Tags)))
 	for _, t := range s.Tags {
 		w.String(t.Type)

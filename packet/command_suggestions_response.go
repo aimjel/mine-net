@@ -23,7 +23,7 @@ func (m *CommandSuggestionsResponse) Decode(r *Reader) error {
 	return nil
 }
 
-func (m CommandSuggestionsResponse) Encode(w Writer) error {
+func (m CommandSuggestionsResponse) Encode(w *Writer) error {
 	w.VarInt(m.TransactionId)
 	w.VarInt(m.Start)
 	w.VarInt(m.Length)

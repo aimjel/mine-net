@@ -10,6 +10,6 @@ func (b BundleDelimiter) Decode(r *Reader) error {
 	return nil
 }
 
-func (b BundleDelimiter) Encode(w Writer) error {
+func (b BundleDelimiter) Encode(w *Writer) error {
 	return nil
 }

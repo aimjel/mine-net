@@ -16,7 +16,7 @@ func (m *SetTablistHeaderFooter) Decode(r *Reader) error {
 	return r.String(&m.Footer)
 }
 
-func (m SetTablistHeaderFooter) Encode(w Writer) error {
+func (m SetTablistHeaderFooter) Encode(w *Writer) error {
 	header := chat.NewMessage(m.Header)
 	footer := chat.NewMessage(m.Footer)
 	w.String(header.String())

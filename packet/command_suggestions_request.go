@@ -14,7 +14,7 @@ func (m *CommandSuggestionsRequest) Decode(r *Reader) error {
 	return r.String(&m.Text)
 }
 
-func (m CommandSuggestionsRequest) Encode(w Writer) error {
+func (m CommandSuggestionsRequest) Encode(w *Writer) error {
 	w.VarInt(m.TransactionId)
 	return w.String(m.Text)
 }

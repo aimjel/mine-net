@@ -16,7 +16,7 @@ func (r *EncryptionRequest) Decode(rd *Reader) error {
 	return rd.ByteArray(&r.VerifyToken)
 }
 
-func (r EncryptionRequest) Encode(w Writer) error {
+func (r EncryptionRequest) Encode(w *Writer) error {
 	_ = w.String(r.ServerID)
 	_ = w.ByteArray(r.PublicKey)
 	return w.ByteArray(r.VerifyToken)

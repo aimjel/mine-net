@@ -22,7 +22,7 @@ func (h *Handshake) Decode(r *Reader) error {
 	return r.Uint8(&h.NextState)
 }
 
-func (h Handshake) Encode(w Writer) error {
+func (h Handshake) Encode(w *Writer) error {
 	_ = w.VarInt(h.ProtocolVersion)
 	_ = w.String(h.ServerAddress)
 	_ = w.Uint16(h.ServerPort)

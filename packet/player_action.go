@@ -20,7 +20,7 @@ func (m *PlayerActionServer) Decode(r *Reader) error {
 	return r.VarInt(&m.Sequence)
 }
 
-func (m PlayerActionServer) Encode(w Writer) error {
+func (m PlayerActionServer) Encode(w *Writer) error {
 	w.VarInt(m.Status)
 	w.Int64(int64(m.Location))
 	w.Int8(m.Face)

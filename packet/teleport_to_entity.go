@@ -12,6 +12,6 @@ func (s *TeleportToEntityServer) Decode(r *Reader) error {
 	return r.UUID(&s.Player)
 }
 
-func (s TeleportToEntityServer) Encode(w Writer) error {
+func (s TeleportToEntityServer) Encode(w *Writer) error {
 	return w.UUID(s.Player)
 }

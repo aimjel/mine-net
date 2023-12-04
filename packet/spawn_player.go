@@ -21,7 +21,7 @@ func (p *SpawnPlayer) Decode(r *Reader) error {
 	return r.Uint8(&p.Pitch)
 }
 
-func (p SpawnPlayer) Encode(w Writer) error {
+func (p SpawnPlayer) Encode(w *Writer) error {
 	_ = w.VarInt(p.EntityID)
 	_ = w.UUID(p.PlayerUUID)
 	_ = w.Float64(p.X)

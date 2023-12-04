@@ -9,26 +9,7 @@ type Packet interface {
 
 	Decode(r *Reader) error
 
-	Encode(w Writer) error
-}
-
-// calculateVarInts returns the number of bytes the var-int array will use
-func sizeVarInts(x []int32) (n int32) {
-	for i := 0; i < len(x); i++ {
-		n += sizeVarInt(x[i])
-	}
-
-	return n
-}
-
-func sizeVarInt(x int32) (n int32) {
-	ux := uint32(x)
-	for ux >= 0x80 {
-		n++
-		ux >>= 7
-	}
-	n++
-	return
+	Encode(w *Writer) error
 }
 
 type Unknown struct {
@@ -44,6 +25,6 @@ func (u Unknown) Decode(*Reader) error {
 	return nil
 }
 
-func (u Unknown) Encode(w Writer) error {
+func (u Unknown) Encode(w *Writer) error {
 	return w.FixedByteArray(u.Payload)
 }

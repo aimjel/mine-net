@@ -21,7 +21,7 @@ func (r *EntityPositionRotation) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r EntityPositionRotation) Encode(w Writer) error {
+func (r EntityPositionRotation) Encode(w *Writer) error {
 	_ = w.VarInt(r.EntityID)
 	_ = w.Int16(r.X)
 	_ = w.Int16(r.Y)

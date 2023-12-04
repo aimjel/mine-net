@@ -12,6 +12,6 @@ func (m *PlayerMovement) Decode(r *Reader) error {
 	return r.Bool(&m.OnGround)
 }
 
-func (m PlayerMovement) Encode(w Writer) error {
+func (m PlayerMovement) Encode(w *Writer) error {
 	return w.Bool(m.OnGround)
 }

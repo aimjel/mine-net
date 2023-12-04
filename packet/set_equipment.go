@@ -1,9 +1,9 @@
 package packet
 
 type SetEquipment struct {
-  	 EntityID int32
-     Slot int8
-     Item Slot
+	EntityID int32
+	Slot     int8
+	Item     Slot
 }
 
 func (m SetEquipment) ID() int32 {
@@ -12,23 +12,23 @@ func (m SetEquipment) ID() int32 {
 
 func (m *SetEquipment) Decode(r *Reader) error {
 	r.VarInt(&m.EntityID)
-  r.Int8(&m.Slot)
-  r.Bool(&m.Item.Present)
+	r.Int8(&m.Slot)
+	r.Bool(&m.Item.Present)
 	if m.Item.Present {
 		r.VarInt(&m.Item.Id)
 		r.Int8(&m.Item.Count)
 	}
-  return nil
+	return nil
 }
 
-func (m SetEquipment) Encode(w Writer) error {
- 	w.VarInt(m.EntityID)
-  w.Int8(m.Slot)
-  w.Bool(m.Item.Present)
+func (m SetEquipment) Encode(w *Writer) error {
+	w.VarInt(m.EntityID)
+	w.Int8(m.Slot)
+	w.Bool(m.Item.Present)
 	if m.Item.Present {
 		w.VarInt(m.Item.Id)
 		w.Int8(m.Item.Count)
-    w.Nbt2(m.Item.Tag)
+		w.Nbt2(m.Item.Tag)
 	}
-  return nil
+	return nil
 }

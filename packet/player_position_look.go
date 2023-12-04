@@ -21,7 +21,7 @@ func (l *PlayerPositionLook) Decode(r *Reader) error {
 	return r.VarInt(&l.TeleportID)
 }
 
-func (l PlayerPositionLook) Encode(w Writer) error {
+func (l PlayerPositionLook) Encode(w *Writer) error {
 	_ = w.Float64(l.X)
 	_ = w.Float64(l.Y)
 	_ = w.Float64(l.Z)

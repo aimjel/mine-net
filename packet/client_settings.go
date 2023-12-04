@@ -27,7 +27,7 @@ func (s *ClientSettings) Decode(r *Reader) error {
 	return r.Bool(&s.AllowServerListings)
 }
 
-func (s ClientSettings) Encode(w Writer) error {
+func (s ClientSettings) Encode(w *Writer) error {
 	_ = w.String(s.Locale)
 	_ = w.Int8(s.ViewDistance)
 	_ = w.VarInt(s.ChatMode)

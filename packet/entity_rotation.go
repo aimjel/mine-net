@@ -17,7 +17,7 @@ func (r *EntityRotation) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r EntityRotation) Encode(w Writer) error {
+func (r EntityRotation) Encode(w *Writer) error {
 	_ = w.VarInt(r.EntityID)
 	_ = w.Uint8(r.Yaw)
 	_ = w.Uint8(r.Pitch)

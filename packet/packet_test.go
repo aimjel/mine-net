@@ -24,15 +24,15 @@ var pk = TestPacket{
 	ByteArray:     []byte("hello world again!"),
 }
 
-var b bytes.Buffer
+var buf bytes.Buffer
 
 func TestPacketEncode_Decode(t *testing.T) {
-	if err := pk.Encode(NewWriter(&b)); err != nil {
+	if err := pk.Encode(NewWriter(&buf)); err != nil {
 		t.Fatal(err)
 	}
 
 	var test_pk TestPacket
-	if err := test_pk.Decode(NewReader(b.Bytes())); err != nil {
+	if err := test_pk.Decode(NewReader(buf.Bytes())); err != nil {
 		t.Fatalf("%v decoding packet", err)
 	}
 
@@ -52,9 +52,20 @@ func TestPacketEncode_Decode(t *testing.T) {
 	}
 }
 
+func BenchmarkPacket_Encode(b *testing.B) {
+	w := NewWriter(&buf)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pk.Encode(w)
+		buf.Reset()
+	}
+
+	b.ReportAllocs()
+}
+
 func TestPlayerInfoUpdate_Encode(t *testing.T) {
 	p := PlayerInfoUpdate{Actions: 63, Players: make([]types.PlayerInfo, 1)}
-	if err := p.Encode(NewWriter(&b)); err != nil {
+	if err := p.Encode(NewWriter(&buf)); err != nil {
 		t.Fatal(err)
 	}
 }

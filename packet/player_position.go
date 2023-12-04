@@ -18,7 +18,7 @@ func (p *PlayerPosition) Decode(r *Reader) error {
 	return r.Bool(&p.OnGround)
 }
 
-func (p PlayerPosition) Encode(w Writer) error {
+func (p PlayerPosition) Encode(w *Writer) error {
 	_ = w.Float64(p.X)
 	_ = w.Float64(p.FeetY)
 	_ = w.Float64(p.Z)

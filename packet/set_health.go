@@ -16,7 +16,7 @@ func (h *SetHealth) Decode(r *Reader) error {
 	return r.Float32(&h.FoodSaturation)
 }
 
-func (h SetHealth) Encode(w Writer) error {
+func (h SetHealth) Encode(w *Writer) error {
 	w.Float32(h.Health)
 	w.VarInt(h.Food)
 	return w.Float32(h.FoodSaturation)

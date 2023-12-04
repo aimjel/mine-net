@@ -12,6 +12,6 @@ func (r *Response) Decode(rd *Reader) error {
 	return rd.ByteArray(&r.JSON)
 }
 
-func (r Response) Encode(w Writer) error {
+func (r Response) Encode(w *Writer) error {
 	return w.ByteArray(r.JSON)
 }

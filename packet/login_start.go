@@ -20,7 +20,7 @@ func (s *LoginStart) Decode(r *Reader) error {
 	return nil
 }
 
-func (s LoginStart) Encode(w Writer) error {
+func (s LoginStart) Encode(w *Writer) error {
 	_ = w.String(s.Name)
 	var hasUUID bool
 	_ = w.Bool(hasUUID)

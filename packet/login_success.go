@@ -37,7 +37,7 @@ func (s *LoginSuccess) Decode(r *Reader) error {
 	return nil
 }
 
-func (s LoginSuccess) Encode(w Writer) error {
+func (s LoginSuccess) Encode(w *Writer) error {
 	_ = w.UUID(s.UUID)
 	_ = w.String(s.Name)
 

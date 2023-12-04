@@ -12,6 +12,6 @@ func (s *SwingArmServer) Decode(r *Reader) error {
 	return r.VarInt(&s.Hand)
 }
 
-func (s SwingArmServer) Encode(w Writer) error {
+func (s SwingArmServer) Encode(w *Writer) error {
 	return w.VarInt(s.Hand)
 }

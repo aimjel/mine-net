@@ -16,7 +16,7 @@ func (e *Explosion) ID() int32 {
 func (e *Explosion) Decode(r *Reader) error {
 	return nil
 }
-func (e *Explosion) Encode(w Writer) error {
+func (e *Explosion) Encode(w *Writer) error {
 	_ = w.Float32(e.X)
 	_ = w.Float32(e.Y)
 	_ = w.Float32(e.Z)

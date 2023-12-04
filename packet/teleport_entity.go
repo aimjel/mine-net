@@ -21,7 +21,7 @@ func (r *TeleportEntity) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r TeleportEntity) Encode(w Writer) error {
+func (r TeleportEntity) Encode(w *Writer) error {
 	_ = w.VarInt(r.EntityID)
 	_ = w.Float64(r.X)
 	_ = w.Float64(r.Y)

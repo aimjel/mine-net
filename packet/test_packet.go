@@ -54,7 +54,7 @@ func (t *TestPacket) Decode(r *Reader) error {
 	return r.ByteArray(&t.ByteArray)
 }
 
-func (t *TestPacket) Encode(w Writer) error {
+func (t *TestPacket) Encode(w *Writer) error {
 	w.Bool(t.Boolean)
 	w.Int8(t.Byte)
 	w.Uint8(t.UnsignedByte)

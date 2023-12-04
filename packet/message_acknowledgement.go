@@ -12,6 +12,6 @@ func (m *MessageAcknowledgment) Decode(r *Reader) error {
 	return r.VarInt(&m.MessageCount)
 }
 
-func (m MessageAcknowledgment) Encode(w Writer) error {
+func (m MessageAcknowledgment) Encode(w *Writer) error {
 	return w.VarInt(m.MessageCount)
 }

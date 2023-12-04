@@ -14,7 +14,7 @@ func (e *EncryptionResponse) Decode(r *Reader) error {
 	return r.ByteArray(&e.VerifyToken)
 }
 
-func (e EncryptionResponse) Encode(w Writer) error {
+func (e EncryptionResponse) Encode(w *Writer) error {
 	_ = w.ByteArray(e.SharedSecret)
 	return w.ByteArray(e.VerifyToken)
 }

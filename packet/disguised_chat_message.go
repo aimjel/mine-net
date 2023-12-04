@@ -17,7 +17,7 @@ func (m *DisguisedChatMessage) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (m DisguisedChatMessage) Encode(w Writer) error {
+func (m DisguisedChatMessage) Encode(w *Writer) error {
 	w.String(m.Message.String())
 	w.VarInt(m.ChatType)
 	w.String(m.ChatTypeName.String())

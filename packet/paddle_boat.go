@@ -14,7 +14,7 @@ func (p *PaddleBoat) Decode(r *Reader) error {
 	return r.Bool(&p.RightPaddleTurning)
 }
 
-func (p *PaddleBoat) Encode(w Writer) error {
+func (p *PaddleBoat) Encode(w *Writer) error {
 	w.Bool(p.LeftPaddleTurning)
 	return w.Bool(p.RightPaddleTurning)
 }

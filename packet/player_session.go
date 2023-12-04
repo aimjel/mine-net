@@ -18,7 +18,7 @@ func (m *PlayerSessionServer) Decode(r *Reader) error {
 	return r.ByteArray(&m.KeySignature)
 }
 
-func (m PlayerSessionServer) Encode(w Writer) error {
+func (m PlayerSessionServer) Encode(w *Writer) error {
 	w.UUID(m.SessionID)
 	w.Int64(m.ExpiresAt)
 	w.ByteArray(m.PublicKey)

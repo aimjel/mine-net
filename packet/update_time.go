@@ -1,8 +1,8 @@
 package packet
 
 type UpdateTime struct {
-	WorldAge int64
-  TimeOfDay int64
+	WorldAge  int64
+	TimeOfDay int64
 }
 
 func (c UpdateTime) ID() int32 {
@@ -14,7 +14,7 @@ func (c *UpdateTime) Decode(r *Reader) error {
 	return r.Int64(&c.TimeOfDay)
 }
 
-func (c UpdateTime) Encode(w Writer) error {
+func (c UpdateTime) Encode(w *Writer) error {
 	w.Int64(c.WorldAge)
 	return w.Int64(c.TimeOfDay)
 }

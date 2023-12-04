@@ -18,7 +18,7 @@ func (c *SetBlockDestroyStage) Decode(r *Reader) error {
 	return r.Uint8(&c.DestroyStage)
 }
 
-func (c SetBlockDestroyStage) Encode(w Writer) error {
+func (c SetBlockDestroyStage) Encode(w *Writer) error {
 	w.VarInt(c.EntityID)
 	w.Int64(int64(c.Location))
 	return w.Uint8(c.DestroyStage)

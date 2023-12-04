@@ -12,6 +12,6 @@ func (m *ClientCommandServer) Decode(r *Reader) error {
 	return r.VarInt(&m.ActionID)
 }
 
-func (m ClientCommandServer) Encode(w Writer) error {
+func (m ClientCommandServer) Encode(w *Writer) error {
 	return w.VarInt(m.ActionID)
 }

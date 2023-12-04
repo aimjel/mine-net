@@ -12,6 +12,6 @@ func (t *TeleportConfirm) Decode(r *Reader) error {
 	return r.VarInt(&t.TeleportID)
 }
 
-func (t TeleportConfirm) Encode(w Writer) error {
+func (t TeleportConfirm) Encode(w *Writer) error {
 	return w.VarInt(t.TeleportID)
 }

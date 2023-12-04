@@ -17,7 +17,7 @@ func (r *PlayerRotation) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r PlayerRotation) Encode(w Writer) error {
+func (r PlayerRotation) Encode(w *Writer) error {
 	_ = w.Float32(r.Yaw)
 	_ = w.Float32(r.Pitch)
 

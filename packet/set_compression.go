@@ -12,6 +12,6 @@ func (s *SetCompression) Decode(r *Reader) error {
 	return r.VarInt(&s.Threshold)
 }
 
-func (s SetCompression) Encode(w Writer) error {
+func (s SetCompression) Encode(w *Writer) error {
 	return w.VarInt(s.Threshold)
 }

@@ -17,7 +17,7 @@ func (p *EntityPosition) Decode(r *Reader) error {
 	_ = r.Int16(&p.Z)
 	return r.Bool(&p.OnGround)
 }
-func (p EntityPosition) Encode(w Writer) error {
+func (p EntityPosition) Encode(w *Writer) error {
 	_ = w.VarInt(p.EntityID)
 	_ = w.Int16(p.X)
 	_ = w.Int16(p.Y)

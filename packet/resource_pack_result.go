@@ -12,6 +12,6 @@ func (m *ResourcePackResult) Decode(r *Reader) error {
 	return r.VarInt(&m.Result)
 }
 
-func (m ResourcePackResult) Encode(w Writer) error {
+func (m ResourcePackResult) Encode(w *Writer) error {
 	return w.VarInt(m.Result)
 }

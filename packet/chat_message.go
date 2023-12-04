@@ -35,6 +35,6 @@ func (m *ChatMessageServer) Decode(r *Reader) error {
 	return nil
 }
 
-func (m ChatMessageServer) Encode(w Writer) error {
+func (m ChatMessageServer) Encode(w *Writer) error {
 	return w.String(m.Message)
 }

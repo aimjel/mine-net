@@ -39,6 +39,6 @@ func (c *SetCreativeModeSlot) Decode(r *Reader) error {
 	return nil
 }
 
-func (c SetCreativeModeSlot) Encode(w Writer) error {
+func (c SetCreativeModeSlot) Encode(w *Writer) error {
 	return w.Int16(c.Slot)
 }

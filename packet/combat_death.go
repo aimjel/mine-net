@@ -16,7 +16,7 @@ func (c *CombatDeath) Decode(r *Reader) error {
 	// todo implement message
 }
 
-func (c CombatDeath) Encode(w Writer) error {
+func (c CombatDeath) Encode(w *Writer) error {
 	w.VarInt(c.PlayerID)
 	msg := chat.NewMessage(c.Message)
 	return w.String(msg.String())

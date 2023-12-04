@@ -22,7 +22,7 @@ func (r *PlayerPositionRotation) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r PlayerPositionRotation) Encode(w Writer) error {
+func (r PlayerPositionRotation) Encode(w *Writer) error {
 	_ = w.Float64(r.X)
 	_ = w.Float64(r.FeetY)
 	_ = w.Float64(r.Z)

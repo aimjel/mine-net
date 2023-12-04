@@ -15,7 +15,7 @@ func (e *SoundEffect) Decode(r *Reader) error {
 	return nil
 }
 
-func (e SoundEffect) Encode(w Writer) error {
+func (e SoundEffect) Encode(w *Writer) error {
 	_ = w.VarInt(e.SoundId)
 	_ = w.VarInt(e.SoundCategory)
 	_ = w.Int32(e.X)

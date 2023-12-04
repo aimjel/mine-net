@@ -30,7 +30,7 @@ func (p *InteractServer) Decode(r *Reader) error {
 	return r.Bool(&p.Sneaking)
 }
 
-func (p InteractServer) Encode(w Writer) error {
+func (p InteractServer) Encode(w *Writer) error {
 	_ = w.VarInt(p.EntityID)
 	_ = w.VarInt(p.Type)
 	if p.Type == 2 {

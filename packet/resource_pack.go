@@ -18,7 +18,7 @@ func (c *ResourcePack) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (c ResourcePack) Encode(w Writer) error {
+func (c ResourcePack) Encode(w *Writer) error {
 	w.String(c.URL)
 	w.String(c.Hash)
 	w.Bool(c.Forced)

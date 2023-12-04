@@ -117,7 +117,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 	return r.VarInt(&d.RootIndex)
 }
 
-func (d *DeclareCommands) Encode(w Writer) error {
+func (d *DeclareCommands) Encode(w *Writer) error {
 	_ = w.VarInt(int32(len(d.Nodes)))
 	for _, n := range d.Nodes {
 		_ = w.Uint8(n.Flags)

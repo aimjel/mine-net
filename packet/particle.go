@@ -18,7 +18,7 @@ func (p *Particle) Decode(r *Reader) error {
 	return nil
 }
 
-func (p *Particle) Encode(w Writer) error {
+func (p *Particle) Encode(w *Writer) error {
 	_ = w.Int32(p.ParticleID)
 	_ = w.Bool(p.LongDistance)
 	_ = w.Float64(p.X)

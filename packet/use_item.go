@@ -8,7 +8,7 @@ func (i *UseItem) ID() int32 {
 	return 0x2f
 }
 
-func (i *UseItem) Encode(w Writer) error {
+func (i *UseItem) Encode(w *Writer) error {
 	return nil
 }
 

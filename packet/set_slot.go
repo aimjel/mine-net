@@ -1,10 +1,10 @@
 package packet
 
 type SetContainerSlot struct {
-	WindowID  int8
-	StateID   int32
-	Slot      int16
-	Data Slot
+	WindowID int8
+	StateID  int32
+	Slot     int16
+	Data     Slot
 }
 
 func (s *SetContainerSlot) ID() int32 {
@@ -15,7 +15,7 @@ func (s *SetContainerSlot) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (s SetContainerSlot) Encode(w Writer) error {
+func (s SetContainerSlot) Encode(w *Writer) error {
 	_ = w.Int8(s.WindowID)
 	_ = w.VarInt(s.StateID)
 	_ = w.Int16(s.Slot)

@@ -14,7 +14,7 @@ func (p *SetCenterChunk) Decode(r *Reader) error {
 	return r.VarInt(&p.ChunkZ)
 }
 
-func (p SetCenterChunk) Encode(w Writer) error {
+func (p SetCenterChunk) Encode(w *Writer) error {
 	_ = w.VarInt(p.ChunkX)
 	return w.VarInt(p.ChunkZ)
 }

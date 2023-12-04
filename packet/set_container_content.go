@@ -15,7 +15,7 @@ func (m *SetContainerContent) Decode(r *Reader) error {
 	return nil
 }
 
-func (m SetContainerContent) Encode(w Writer) error {
+func (m SetContainerContent) Encode(w *Writer) error {
 	w.Uint8(m.WindowID)
 	w.VarInt(m.StateID)
 	w.VarInt(int32(len(m.Slots)))

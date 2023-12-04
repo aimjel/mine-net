@@ -23,7 +23,7 @@ func (g *Respawn) Decode(r *Reader) error {
 	return nil
 }
 
-func (g Respawn) Encode(w Writer) error {
+func (g Respawn) Encode(w *Writer) error {
 	w.String(g.DimensionType)
 	w.String(g.DimensionName)
 	w.Int64(g.HashedSeed)

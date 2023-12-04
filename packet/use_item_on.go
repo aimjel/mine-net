@@ -26,7 +26,7 @@ func (m *UseItemOnServer) Decode(r *Reader) error {
 	return r.VarInt(&m.Sequence)
 }
 
-func (m UseItemOnServer) Encode(w Writer) error {
+func (m UseItemOnServer) Encode(w *Writer) error {
 	w.VarInt(m.Hand)
 	w.Int64(int64(m.Location))
 	w.VarInt(m.Face)

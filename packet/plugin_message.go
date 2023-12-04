@@ -14,7 +14,7 @@ func (p PluginMessage) Decode(r *Reader) error {
 	panic("implement me")
 }
 
-func (p PluginMessage) Encode(w Writer) error {
+func (p PluginMessage) Encode(w *Writer) error {
 	_ = w.String(p.Channel)
 	return w.ByteArray(p.Data)
 }

@@ -14,7 +14,7 @@ func (c *EntityEvent) Decode(r *Reader) error {
 	return r.Int8(&c.Status)
 }
 
-func (c EntityEvent) Encode(w Writer) error {
+func (c EntityEvent) Encode(w *Writer) error {
 	w.Int32(c.EntityID)
 	return w.Int8(c.Status)
 }

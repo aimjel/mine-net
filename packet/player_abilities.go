@@ -15,7 +15,7 @@ func (p *PlayerAbilities) Decode(r *Reader) error {
 	_ = r.Float32(&p.FlyingSpeed)
 	return r.Float32(&p.FieldOfViewModifier)
 }
-func (p PlayerAbilities) Encode(w Writer) error {
+func (p PlayerAbilities) Encode(w *Writer) error {
 	_ = w.Uint8(p.Flags)
 	_ = w.Float32(p.FlyingSpeed)
 	return w.Float32(p.FieldOfViewModifier)

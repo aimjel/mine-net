@@ -14,7 +14,7 @@ func (l *HurtAnimation) Decode(r *Reader) error {
 	return r.Float32(&l.Yaw)
 }
 
-func (l HurtAnimation) Encode(w Writer) error {
+func (l HurtAnimation) Encode(w *Writer) error {
 	w.VarInt(l.EntityID)
 	return w.Float32(l.Yaw)
 }

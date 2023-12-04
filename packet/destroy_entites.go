@@ -12,6 +12,6 @@ func (d *DestroyEntities) Decode(r *Reader) error {
 	panic("implement me")
 }
 
-func (d DestroyEntities) Encode(w Writer) error {
+func (d DestroyEntities) Encode(w *Writer) error {
 	return w.VarIntArray(d.EntityIds)
 }

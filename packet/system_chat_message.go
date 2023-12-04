@@ -14,7 +14,7 @@ func (m *SystemChatMessage) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (m SystemChatMessage) Encode(w Writer) error {
+func (m SystemChatMessage) Encode(w *Writer) error {
 	w.String(m.Message.String())
 	return w.Bool(false)
 }

@@ -14,7 +14,7 @@ func (a *EntityAnimation) Decode(r *Reader) error {
 	return r.Uint8(&a.Animation)
 }
 
-func (a EntityAnimation) Encode(w Writer) error {
+func (a EntityAnimation) Encode(w *Writer) error {
 	w.VarInt(a.EntityID)
 	return w.Uint8(a.Animation)
 }
