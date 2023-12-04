@@ -17,8 +17,7 @@ type Decoder struct {
 
 	decompression bool
 
-	tmp      *bytes.Buffer
-	tmpInUse bool
+	tmp *bytes.Buffer
 }
 
 func NewDecoder(r io.Reader) *Decoder {
@@ -37,8 +36,6 @@ func (dec *Decoder) EnableDecompression() {
 // DecodePacket reads from the underlying reader and returns a packet's payload.
 // The slice returned is valid until the next call.
 func (dec *Decoder) DecodePacket() ([]byte, error) {
-	dec.tmpInUse = false
-
 	pkLen, err := dec.r.ReadVarInt()
 	if err != nil {
 		return nil, fmt.Errorf("%w reading packet length", err)
@@ -69,8 +66,8 @@ func (dec *Decoder) DecodePacket() ([]byte, error) {
 		}
 	}
 
-	if dec.tmpInUse == false && dec.tmp != nil {
-		buffers.Put(dec.tmp)
+	if dec.tmp != nil {
+		PutBuffer(dec.tmp)
 		dec.tmp = nil
 	}
 
@@ -107,13 +104,12 @@ func (dec *Decoder) decompress(len int) ([]byte, error) {
 }
 
 func (dec *Decoder) buffer(size int) *bytes.Buffer {
-	dec.tmpInUse = true
 	if dec.tmp != nil {
 		dec.tmp.Grow(size)
 		dec.tmp.Reset()
 		return dec.tmp
 	}
 
-	dec.tmp = buffers.Get(size)
+	dec.tmp = GetBuffer(size)
 	return dec.tmp
 }

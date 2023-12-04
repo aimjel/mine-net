@@ -3,11 +3,8 @@ package protocol
 import (
 	"bytes"
 	"compress/zlib"
-	"math"
 	"sync"
 )
-
-var buffers = NewBufferPool()
 
 type zlibHeader struct{}
 
@@ -22,52 +19,40 @@ var zlibReaders = sync.Pool{
 	},
 }
 
-// BufferPool holds different size of buffers and returns the best match size
-type BufferPool struct {
-	poolMap map[int]*sync.Pool
+const s = 1 << 14
 
-	mu sync.Mutex
-}
-
-func NewBufferPool() *BufferPool {
-	return &BufferPool{
-		poolMap: make(map[int]*sync.Pool),
+var (
+	sizes = [...]int{
+		1 << 10, //1  KB
+		1 << 14, //16 KB
+		1 << 20, //1  MB
 	}
-}
 
-func (bp *BufferPool) Get(size int) *bytes.Buffer {
-	bp.mu.Lock()
-	defer bp.mu.Unlock()
+	buffers = [...]sync.Pool{
+		{New: func() any { return bytes.NewBuffer(make([]byte, 0, 1<<10)) }},
 
-	var lastDiff int = math.MaxInt
-	var nearestSize int
-	for bufSize := range bp.poolMap {
-		if bufSize >= size && (bufSize-size) < lastDiff {
-			lastDiff = bufSize - size
-			nearestSize = bufSize
+		{New: func() any { return bytes.NewBuffer(make([]byte, 0, 1<<14)) }},
+
+		{New: func() any { return bytes.NewBuffer(make([]byte, 0, 1<<20)) }},
+	}
+)
+
+func GetBuffer(size int) *bytes.Buffer {
+	for i, v := range sizes {
+		if size < v {
+			return buffers[i].Get().(*bytes.Buffer)
 		}
 	}
 
-	if nearestSize == 0 {
-		pool := &sync.Pool{
-			New: func() interface{} {
-				return bytes.NewBuffer(make([]byte, 0, size))
-			},
-		}
-		bp.poolMap[size] = pool
-		return pool.Get().(*bytes.Buffer)
-	}
-
-	return bp.poolMap[nearestSize].Get().(*bytes.Buffer)
+	return nil
 }
 
-func (bp *BufferPool) Put(buf *bytes.Buffer) {
-	bp.mu.Lock()
-	defer bp.mu.Unlock()
+func PutBuffer(b *bytes.Buffer) {
+	b.Reset()
 
-	pool, found := bp.poolMap[buf.Cap()]
-	if found {
-		buf.Reset()
-		pool.Put(buf)
+	for i, v := range sizes {
+		if b.Cap() < v {
+			buffers[i].Put(b)
+		}
 	}
 }

@@ -69,8 +69,8 @@ func (enc *Encoder) EncodePacket(data []byte) error {
 
 // compresses the bytes of the buffer object passed
 func (enc *Encoder) compress(payload []byte) error {
-	buf := buffers.Get(len(payload))
-	defer buffers.Put(buf)
+	buf := GetBuffer(len(payload))
+	defer PutBuffer(buf)
 
 	enc.compressor.Reset(buf)
 
@@ -117,7 +117,7 @@ func (enc *Encoder) writeHeader(pkLen, dataLen int) {
 }
 
 // VarIntSize returns the number of bytes n takes up
-func VarIntSize(n int) (i int) {
+func VarIntSize[T int | int32](n T) (i int) {
 	for n >= 0x80 {
 		n >>= 7
 		i++
