@@ -1,7 +1,5 @@
 package packet
 
-import "fmt"
-
 type ChunkData struct {
 	X, Z int32
 
@@ -29,7 +27,6 @@ func (d *ChunkData) Encode(w *Writer) error {
 	_ = w.Int32(d.Z)
 
 	_ = w.FixedByteArray(d.Heightmaps)
-	fmt.Println(len(d.Heightmaps), "len of height map after writing to packet writer buffer")
 
 	_ = w.ByteArray(d.Sections)
 

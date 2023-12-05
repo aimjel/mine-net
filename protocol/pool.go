@@ -53,6 +53,7 @@ func PutBuffer(b *bytes.Buffer) {
 	for i, v := range sizes {
 		if b.Cap() < v {
 			buffers[i].Put(b)
+			return
 		}
 	}
 }
