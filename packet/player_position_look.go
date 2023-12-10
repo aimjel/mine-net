@@ -1,17 +1,18 @@
 package packet
 
-type PlayerPositionLook struct {
+// SyncPlayerPos updates the player's position on the client's side.
+type SyncPlayerPos struct {
 	X, Y, Z    float64
 	Yaw, Pitch float32
 	Flags      int8
 	TeleportID int32
 }
 
-func (l *PlayerPositionLook) ID() int32 {
+func (l *SyncPlayerPos) ID() int32 {
 	return 0x3c
 }
 
-func (l *PlayerPositionLook) Decode(r *Reader) error {
+func (l *SyncPlayerPos) Decode(r *Reader) error {
 	_ = r.Float64(&l.X)
 	_ = r.Float64(&l.Y)
 	_ = r.Float64(&l.Z)
@@ -21,7 +22,7 @@ func (l *PlayerPositionLook) Decode(r *Reader) error {
 	return r.VarInt(&l.TeleportID)
 }
 
-func (l PlayerPositionLook) Encode(w *Writer) error {
+func (l SyncPlayerPos) Encode(w *Writer) error {
 	_ = w.Float64(l.X)
 	_ = w.Float64(l.Y)
 	_ = w.Float64(l.Z)

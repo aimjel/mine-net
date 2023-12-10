@@ -18,7 +18,6 @@ type PlayerInfo struct {
 	PublicKey     []byte
 	KeySignature  []byte
 
-	//Listed tells the PlayerInfoUpdate packet
-	//that the player should be on the player-list
+	// Listed lists the player's info in the server's player list
 	Listed bool
 }
