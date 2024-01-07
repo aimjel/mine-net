@@ -3,14 +3,9 @@ package packet
 type ChunkData struct {
 	X, Z int32
 
-	Heightmaps []byte
-
-	Sections []byte
-
-	//Todo block entities, chests etc
-	Blocks struct{}
-
-	Lights []byte
+	//Data includes height-map, section data, block entities
+	// and light information.
+	Data []byte
 }
 
 func (d ChunkData) ID() int32 {
@@ -26,12 +21,5 @@ func (d *ChunkData) Encode(w *Writer) error {
 	_ = w.Int32(d.X)
 	_ = w.Int32(d.Z)
 
-	_ = w.FixedByteArray(d.Heightmaps)
-
-	_ = w.ByteArray(d.Sections)
-
-	//TODO block entities
-	_ = w.VarInt(0)
-
-	return w.FixedByteArray(d.Lights)
+	return w.FixedByteArray(d.Data)
 }
