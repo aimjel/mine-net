@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type InteractServer struct {
 	EntityID int32
 	Type     int32
@@ -14,7 +16,7 @@ func (p InteractServer) ID() int32 {
 	return 0x10
 }
 
-func (p *InteractServer) Decode(r *Reader) error {
+func (p *InteractServer) Decode(r *encoding.Reader) error {
 	_ = r.VarInt(&p.EntityID)
 	_ = r.VarInt(&p.Type)
 	if p.Type == 2 {
@@ -30,7 +32,7 @@ func (p *InteractServer) Decode(r *Reader) error {
 	return r.Bool(&p.Sneaking)
 }
 
-func (p InteractServer) Encode(w *Writer) error {
+func (p InteractServer) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(p.EntityID)
 	_ = w.VarInt(p.Type)
 	if p.Type == 2 {

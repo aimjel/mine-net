@@ -2,6 +2,7 @@ package packet
 
 import (
 	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
 )
 
 type DisconnectLogin struct {
@@ -12,11 +13,11 @@ func (l DisconnectLogin) ID() int32 {
 	return 0x00
 }
 
-func (l *DisconnectLogin) Decode(r *Reader) error {
+func (l *DisconnectLogin) Decode(r *encoding.Reader) error {
 	return NotImplemented
 }
 
-func (l DisconnectLogin) Encode(w *Writer) error {
+func (l DisconnectLogin) Encode(w *encoding.Writer) error {
 	return w.String(l.Reason.String())
 }
 

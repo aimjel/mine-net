@@ -1,6 +1,9 @@
 package packet
 
-import "github.com/aimjel/minecraft/chat"
+import (
+	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 type CommandSuggestionsResponse struct {
 	TransactionId int32
@@ -18,12 +21,12 @@ func (m CommandSuggestionsResponse) ID() int32 {
 	return 0x0F
 }
 
-func (m *CommandSuggestionsResponse) Decode(r *Reader) error {
+func (m *CommandSuggestionsResponse) Decode(r *encoding.Reader) error {
 	// todo implement
 	return nil
 }
 
-func (m CommandSuggestionsResponse) Encode(w *Writer) error {
+func (m CommandSuggestionsResponse) Encode(w *encoding.Writer) error {
 	w.VarInt(m.TransactionId)
 	w.VarInt(m.Start)
 	w.VarInt(m.Length)

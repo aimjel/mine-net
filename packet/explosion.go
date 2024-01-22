@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type Explosion struct {
 	X, Y, Z       float32
 	Strength      float32
@@ -13,10 +15,10 @@ func (e *Explosion) ID() int32 {
 	return 0x1C
 }
 
-func (e *Explosion) Decode(r *Reader) error {
+func (e *Explosion) Decode(r *encoding.Reader) error {
 	return nil
 }
-func (e *Explosion) Encode(w *Writer) error {
+func (e *Explosion) Encode(w *encoding.Writer) error {
 	_ = w.Float32(e.X)
 	_ = w.Float32(e.Y)
 	_ = w.Float32(e.Z)

@@ -3,6 +3,7 @@ package minecraft
 import (
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/protocol/encoding"
 	"net"
 	"strconv"
 )
@@ -55,7 +56,7 @@ func doLogin(c *Conn, address, username string) error {
 
 		case 0x02:
 			var lgSuccess packet.LoginSuccess
-			if err = lgSuccess.Decode(packet.NewReader(pk.Payload)); err != nil {
+			if err = lgSuccess.Decode(encoding.NewReader(pk.Payload)); err != nil {
 				return err
 			}
 
@@ -66,7 +67,7 @@ func doLogin(c *Conn, address, username string) error {
 
 		case 0x03:
 			var com packet.SetCompression
-			if err = com.Decode(packet.NewReader(pk.Payload)); err != nil {
+			if err = com.Decode(encoding.NewReader(pk.Payload)); err != nil {
 				return err
 			}
 

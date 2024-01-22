@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
 	"github.com/aimjel/minecraft/protocol"
+	"github.com/aimjel/minecraft/protocol/encoding"
 	"github.com/aimjel/minecraft/protocol/types"
 	"net"
 	"sync"
@@ -65,7 +66,7 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 		return nil, err
 	}
 
-	reader := packet.NewReader(data)
+	reader := encoding.NewReader(data)
 	var id int32
 	if err = reader.VarInt(&id); err != nil {
 		return nil, fmt.Errorf("%v decoding packet id", err)
@@ -90,7 +91,7 @@ func (c *Conn) DecodePacket(pk packet.Packet) error {
 		return err
 	}
 
-	rd := packet.NewReader(payload)
+	rd := encoding.NewReader(payload)
 
 	var id int32
 	if err = rd.VarInt(&id); err != nil {
@@ -140,7 +141,7 @@ func (c *Conn) WritePacket(pk packet.Packet) error {
 
 func (c *Conn) writePacket(pk packet.Packet) error {
 	start := c.buf.Len() //records the start of the packet data
-	pw := packet.NewWriter(c.buf)
+	pw := encoding.NewWriter(c.buf)
 
 	//ignore errors since writing to a bytes.Buffer object
 	//always returns nil

@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SetCreativeModeSlot struct {
 	Slot        int16
 	ClickedItem Slot
@@ -27,7 +29,7 @@ func (c SetCreativeModeSlot) ID() int32 {
 	return 0x2B
 }
 
-func (c *SetCreativeModeSlot) Decode(r *Reader) error {
+func (c *SetCreativeModeSlot) Decode(r *encoding.Reader) error {
 	r.Int16(&c.Slot)
 	r.Bool(&c.ClickedItem.Present)
 
@@ -39,6 +41,6 @@ func (c *SetCreativeModeSlot) Decode(r *Reader) error {
 	return nil
 }
 
-func (c SetCreativeModeSlot) Encode(w *Writer) error {
+func (c SetCreativeModeSlot) Encode(w *encoding.Writer) error {
 	return w.Int16(c.Slot)
 }

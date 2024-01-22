@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SpawnPlayer struct {
 	EntityID   int32
 	PlayerUUID [16]byte
@@ -11,7 +13,7 @@ func (p SpawnPlayer) ID() int32 {
 	return 0x03
 }
 
-func (p *SpawnPlayer) Decode(r *Reader) error {
+func (p *SpawnPlayer) Decode(r *encoding.Reader) error {
 	_ = r.VarInt(&p.EntityID)
 	_ = r.UUID(&p.PlayerUUID)
 	_ = r.Float64(&p.X)
@@ -21,7 +23,7 @@ func (p *SpawnPlayer) Decode(r *Reader) error {
 	return r.Uint8(&p.Pitch)
 }
 
-func (p SpawnPlayer) Encode(w *Writer) error {
+func (p SpawnPlayer) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(p.EntityID)
 	_ = w.UUID(p.PlayerUUID)
 	_ = w.Float64(p.X)

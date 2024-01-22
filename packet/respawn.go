@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type Respawn struct {
 	DimensionType      string
 	DimensionName      string
@@ -18,12 +20,12 @@ func (g Respawn) ID() int32 {
 	return 0x41
 }
 
-func (g *Respawn) Decode(r *Reader) error {
+func (g *Respawn) Decode(r *encoding.Reader) error {
 	panic("implement") //todo implement decode join game packet
 	return nil
 }
 
-func (g Respawn) Encode(w *Writer) error {
+func (g Respawn) Encode(w *encoding.Writer) error {
 	w.String(g.DimensionType)
 	w.String(g.DimensionName)
 	w.Int64(g.HashedSeed)

@@ -1,6 +1,9 @@
 package packet
 
-import _ "embed"
+import (
+	_ "embed"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 //go:embed internal/data/dimension.nbt
 var dimensions []byte
@@ -33,12 +36,12 @@ func (g JoinGame) ID() int32 {
 	return 0x28
 }
 
-func (g *JoinGame) Decode(r *Reader) error {
+func (g *JoinGame) Decode(r *encoding.Reader) error {
 	panic("implement") //todo implement decode join game packet
 	return nil
 }
 
-func (g JoinGame) Encode(w *Writer) error {
+func (g JoinGame) Encode(w *encoding.Writer) error {
 	_ = w.Int32(g.EntityID)
 	_ = w.Bool(g.IsHardcore)
 	_ = w.Uint8(g.GameMode)

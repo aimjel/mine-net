@@ -1,6 +1,9 @@
 package packet
 
-import "github.com/aimjel/minecraft/chat"
+import (
+	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 // tubby ahh packet!
 
@@ -34,7 +37,7 @@ func (m PlayerChatMessage) ID() int32 {
 	return 0x35
 }
 
-func (m *PlayerChatMessage) Decode(r *Reader) error {
+func (m *PlayerChatMessage) Decode(r *encoding.Reader) error {
 	r.UUID(&m.Sender)
 	r.VarInt(&m.Index)
 	var hasSig bool
@@ -91,7 +94,7 @@ func (m *PlayerChatMessage) Decode(r *Reader) error {
 	return NotImplemented
 }
 
-func (m PlayerChatMessage) Encode(w *Writer) error {
+func (m PlayerChatMessage) Encode(w *encoding.Writer) error {
 	w.UUID(m.Sender)
 	w.VarInt(m.Index)
 	if m.MessageSignature != nil {

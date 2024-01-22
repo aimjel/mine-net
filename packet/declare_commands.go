@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"github.com/aimjel/minecraft/protocol/encoding"
 	"github.com/aimjel/minecraft/protocol/types"
 	"unsafe"
 )
@@ -15,7 +16,7 @@ func (d *DeclareCommands) ID() int32 {
 	return 0x10
 }
 
-func (d *DeclareCommands) Decode(r *Reader) error {
+func (d *DeclareCommands) Decode(r *encoding.Reader) error {
 	var length int32
 	if err := r.VarInt(&length); err != nil {
 		return err
@@ -117,7 +118,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 	return r.VarInt(&d.RootIndex)
 }
 
-func (d *DeclareCommands) Encode(w *Writer) error {
+func (d *DeclareCommands) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(int32(len(d.Nodes)))
 	for _, n := range d.Nodes {
 		_ = w.Uint8(n.Flags)

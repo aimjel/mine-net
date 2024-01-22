@@ -1,6 +1,9 @@
 package packet
 
-import "github.com/aimjel/minecraft/protocol/types"
+import (
+	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minecraft/protocol/types"
+)
 
 type LoginSuccess struct {
 	UUID [16]byte
@@ -13,7 +16,7 @@ func (s LoginSuccess) ID() int32 {
 	return 0x02
 }
 
-func (s *LoginSuccess) Decode(r *Reader) error {
+func (s *LoginSuccess) Decode(r *encoding.Reader) error {
 	_ = r.UUID(&s.UUID)
 	_ = r.String(&s.Name)
 
@@ -37,7 +40,7 @@ func (s *LoginSuccess) Decode(r *Reader) error {
 	return nil
 }
 
-func (s LoginSuccess) Encode(w *Writer) error {
+func (s LoginSuccess) Encode(w *encoding.Writer) error {
 	_ = w.UUID(s.UUID)
 	_ = w.String(s.Name)
 

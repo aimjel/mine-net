@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/protocol/encoding"
 	"net"
 )
 
@@ -162,7 +163,7 @@ func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
 
 		case 0x02:
 			var lgSuc packet.LoginSuccess
-			if err = lgSuc.Decode(packet.NewReader(pk.Payload)); err != nil {
+			if err = lgSuc.Decode(encoding.NewReader(pk.Payload)); err != nil {
 				return fmt.Errorf("%v decoding login success packet", err)
 			}
 
@@ -179,7 +180,7 @@ func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
 
 		case 0x03:
 			var com packet.SetCompression
-			if err = com.Decode(packet.NewReader(pk.Payload)); err != nil {
+			if err = com.Decode(encoding.NewReader(pk.Payload)); err != nil {
 				return fmt.Errorf("%v decoding compression threshold packet", err)
 			}
 			pc.conn.SendPacket(&com)

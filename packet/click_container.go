@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type ClickContainer struct {
 	WindowID    uint8
 	StateID     int32
@@ -14,7 +16,7 @@ func (c ClickContainer) ID() int32 {
 	return 0x0B
 }
 
-func (c *ClickContainer) Decode(r *Reader) error {
+func (c *ClickContainer) Decode(r *encoding.Reader) error {
 	c.Slots = make(map[int16]Slot)
 	r.Uint8(&c.WindowID)
 	r.VarInt(&c.StateID)
@@ -44,6 +46,6 @@ func (c *ClickContainer) Decode(r *Reader) error {
 	return nil
 }
 
-func (c ClickContainer) Encode(w *Writer) error {
+func (c ClickContainer) Encode(w *encoding.Writer) error {
 	return w.Uint8(c.WindowID)
 }

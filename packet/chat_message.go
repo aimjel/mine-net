@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type ChatMessageServer struct {
 	Message              string
 	Timestamp            int64
@@ -12,7 +14,7 @@ func (m ChatMessageServer) ID() int32 {
 	return 0x05
 }
 
-func (m *ChatMessageServer) Decode(r *Reader) error {
+func (m *ChatMessageServer) Decode(r *encoding.Reader) error {
 	r.String(&m.Message)
 	r.Int64(&m.Timestamp)
 	r.Int64(&m.Salt)
@@ -35,6 +37,6 @@ func (m *ChatMessageServer) Decode(r *Reader) error {
 	return nil
 }
 
-func (m ChatMessageServer) Encode(w *Writer) error {
+func (m ChatMessageServer) Encode(w *encoding.Writer) error {
 	return w.String(m.Message)
 }

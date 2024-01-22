@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type PlayerPositionRotation struct {
 	X, FeetY, Z float64
 
@@ -12,7 +14,7 @@ func (r PlayerPositionRotation) ID() int32 {
 	return 0x15
 }
 
-func (r *PlayerPositionRotation) Decode(rd *Reader) error {
+func (r *PlayerPositionRotation) Decode(rd *encoding.Reader) error {
 	_ = rd.Float64(&r.X)
 	_ = rd.Float64(&r.FeetY)
 	_ = rd.Float64(&r.Z)
@@ -22,7 +24,7 @@ func (r *PlayerPositionRotation) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r PlayerPositionRotation) Encode(w *Writer) error {
+func (r PlayerPositionRotation) Encode(w *encoding.Writer) error {
 	_ = w.Float64(r.X)
 	_ = w.Float64(r.FeetY)
 	_ = w.Float64(r.Z)

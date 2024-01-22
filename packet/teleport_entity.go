@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type TeleportEntity struct {
 	EntityID   int32
 	X, Y, Z    float64
@@ -11,7 +13,7 @@ func (r TeleportEntity) ID() int32 {
 	return 0x68
 }
 
-func (r *TeleportEntity) Decode(rd *Reader) error {
+func (r *TeleportEntity) Decode(rd *encoding.Reader) error {
 	_ = rd.VarInt(&r.EntityID)
 	_ = rd.Float64(&r.X)
 	_ = rd.Float64(&r.Y)
@@ -21,7 +23,7 @@ func (r *TeleportEntity) Decode(rd *Reader) error {
 	return rd.Bool(&r.OnGround)
 }
 
-func (r TeleportEntity) Encode(w *Writer) error {
+func (r TeleportEntity) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(r.EntityID)
 	_ = w.Float64(r.X)
 	_ = w.Float64(r.Y)

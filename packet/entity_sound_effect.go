@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type EntitySoundEffect struct {
 	SoundID       int32
 	SoundName     string
@@ -15,11 +17,11 @@ func (c EntitySoundEffect) ID() int32 {
 	return 0x61
 }
 
-func (c *EntitySoundEffect) Decode(r *Reader) error {
+func (c *EntitySoundEffect) Decode(r *encoding.Reader) error {
 	return NotImplemented
 }
 
-func (c EntitySoundEffect) Encode(w *Writer) error {
+func (c EntitySoundEffect) Encode(w *encoding.Writer) error {
 	w.VarInt(c.SoundID + 1)
 	if c.SoundID+1 == 0 {
 		w.String(c.SoundName)

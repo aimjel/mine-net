@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type ChunkData struct {
 	X, Z int32
 
@@ -12,12 +14,12 @@ func (d ChunkData) ID() int32 {
 	return 0x24
 }
 
-func (d *ChunkData) Decode(r *Reader) error {
+func (d *ChunkData) Decode(r *encoding.Reader) error {
 	panic("implement") //todo implement decode chunk data packet
 	return nil
 }
 
-func (d *ChunkData) Encode(w *Writer) error {
+func (d *ChunkData) Encode(w *encoding.Writer) error {
 	_ = w.Int32(d.X)
 	_ = w.Int32(d.Z)
 

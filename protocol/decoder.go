@@ -12,6 +12,7 @@ import (
 
 const MaxPacket = 1 << 21
 
+// Decoder decodes packet headers and returns the payload
 type Decoder struct {
 	r *Reader
 

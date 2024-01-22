@@ -1,6 +1,9 @@
 package packet
 
-import "github.com/aimjel/minecraft/chat"
+import (
+	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 type ResourcePack struct {
 	URL    string
@@ -13,12 +16,12 @@ func (c ResourcePack) ID() int32 {
 	return 0x40
 }
 
-func (c *ResourcePack) Decode(r *Reader) error {
+func (c *ResourcePack) Decode(r *encoding.Reader) error {
 	//todo implement
 	return NotImplemented
 }
 
-func (c ResourcePack) Encode(w *Writer) error {
+func (c ResourcePack) Encode(w *encoding.Writer) error {
 	w.String(c.URL)
 	w.String(c.Hash)
 	w.Bool(c.Forced)

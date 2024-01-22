@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type DamageEvent struct {
 	EntityID        int32
 	SourceTypeID    int32
@@ -14,11 +16,11 @@ func (l DamageEvent) ID() int32 {
 	return 0x18
 }
 
-func (l *DamageEvent) Decode(r *Reader) error {
+func (l *DamageEvent) Decode(r *encoding.Reader) error {
 	return nil
 }
 
-func (l DamageEvent) Encode(w *Writer) error {
+func (l DamageEvent) Encode(w *encoding.Writer) error {
 	w.VarInt(l.EntityID)
 	w.VarInt(l.SourceTypeID)
 	w.VarInt(l.SourceCauseID)

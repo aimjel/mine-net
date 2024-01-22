@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SetContainerContent struct {
 	WindowID uint8
 	StateID  int32
@@ -10,12 +12,12 @@ func (m SetContainerContent) ID() int32 {
 	return 0x12
 }
 
-func (m *SetContainerContent) Decode(r *Reader) error {
+func (m *SetContainerContent) Decode(r *encoding.Reader) error {
 	//todo reader
 	return nil
 }
 
-func (m SetContainerContent) Encode(w *Writer) error {
+func (m SetContainerContent) Encode(w *encoding.Writer) error {
 	w.Uint8(m.WindowID)
 	w.VarInt(m.StateID)
 	w.VarInt(int32(len(m.Slots)))

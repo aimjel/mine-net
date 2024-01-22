@@ -1,6 +1,9 @@
 package packet
 
-import "github.com/aimjel/minecraft/chat"
+import (
+	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 type DisguisedChatMessage struct {
 	Message      chat.Message
@@ -13,11 +16,11 @@ func (m DisguisedChatMessage) ID() int32 {
 	return 0x1B
 }
 
-func (m *DisguisedChatMessage) Decode(r *Reader) error {
+func (m *DisguisedChatMessage) Decode(r *encoding.Reader) error {
 	return NotImplemented
 }
 
-func (m DisguisedChatMessage) Encode(w *Writer) error {
+func (m DisguisedChatMessage) Encode(w *encoding.Writer) error {
 	w.String(m.Message.String())
 	w.VarInt(m.ChatType)
 	w.String(m.ChatTypeName.String())

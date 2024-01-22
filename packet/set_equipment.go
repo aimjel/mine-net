@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SetEquipment struct {
 	EntityID int32
 	Slot     int8
@@ -10,7 +12,7 @@ func (m SetEquipment) ID() int32 {
 	return 0x55
 }
 
-func (m *SetEquipment) Decode(r *Reader) error {
+func (m *SetEquipment) Decode(r *encoding.Reader) error {
 	r.VarInt(&m.EntityID)
 	r.Int8(&m.Slot)
 	r.Bool(&m.Item.Present)
@@ -21,7 +23,7 @@ func (m *SetEquipment) Decode(r *Reader) error {
 	return nil
 }
 
-func (m SetEquipment) Encode(w *Writer) error {
+func (m SetEquipment) Encode(w *encoding.Writer) error {
 	w.VarInt(m.EntityID)
 	w.Int8(m.Slot)
 	w.Bool(m.Item.Present)

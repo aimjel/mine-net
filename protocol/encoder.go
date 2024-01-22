@@ -7,6 +7,7 @@ import (
 	"github.com/aimjel/minecraft/protocol/crypto"
 )
 
+// Encoder writes packet payload with the header
 type Encoder struct {
 	buf *bytes.Buffer
 
