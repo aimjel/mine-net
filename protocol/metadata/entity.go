@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"fmt"
 	"github.com/aimjel/minecraft/chat"
 	"github.com/aimjel/minecraft/protocol/encoding"
 )
@@ -70,7 +69,6 @@ func (e Entity) Encode(w *encoding.Writer) error {
 	if e.indexUsed&data != 0 {
 		_ = w.Uint8(bitmaskToIndex(data))
 		_ = encode(w, e.data)
-		fmt.Println(bitmaskToIndex(data), "data index")
 	}
 	if e.indexUsed&airTicks != 0 {
 		_ = w.Uint8(bitmaskToIndex(airTicks))
@@ -95,7 +93,6 @@ func (e Entity) Encode(w *encoding.Writer) error {
 	if e.indexUsed&poseType != 0 {
 		_ = w.Uint8(bitmaskToIndex(poseType))
 		_ = encode(w, e.pose)
-		fmt.Println(bitmaskToIndex(poseType), "pose inddeex")
 	}
 	if e.indexUsed&frozenTicks != 0 {
 		_ = w.Uint8(bitmaskToIndex(poseType))
