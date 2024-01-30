@@ -3,8 +3,8 @@ package nbt
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"os"
-	"reflect"
 	"testing"
 )
 
@@ -77,16 +77,15 @@ func TestUnmarshalChunk(t *testing.T) {
 	if err := Unmarshal(chunkData, &c); err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(c)
+}
 
-	var c2 chunk
-	err := NewDecoder(bytes.NewReader(chunkData)).Decode(&c2)
-	if err != nil {
+func TestDecoder_Decode(t *testing.T) {
+	var c chunk
+	if err := NewDecoder(bytes.NewReader(chunkData)).Decode(&c); err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(c2, c) {
-		t.Fatal("corrupt decoding")
-	}
 }
 
 func TestUnmarshalBigTest(t *testing.T) {

@@ -5,60 +5,65 @@ import (
 	"io"
 	"math"
 	"reflect"
-	"unsafe"
+	"strings"
+	"sync"
 )
+
+func Unmarshal(b []byte, v any) error {
+	return (&Decoder{
+		dec: newDecoderWithBytes(b),
+	}).Decode(v)
+}
 
 type Decoder struct {
 	rd io.Reader
 
-	//buf is a simple buffer to read values
-	buf []byte
+	dec *decoder
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{rd: r, buf: make([]byte, 8)}
+	return &Decoder{
+		rd:  r,
+		dec: newDecoder(r),
+	}
 }
 
-func (dec *Decoder) Decode(v any) error {
+func (d *Decoder) Decode(v any) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Pointer {
 		return fmt.Errorf("nbt: value passed must be a pointer")
 	}
 
-	id, _, err := dec.readTag()
+	id, err := d.dec.readTag()
 	if err != nil {
 		return err
 	}
 
-	return dec.unmarshal(rv.Elem(), id)
+	return d.unmarshal(rv.Elem(), id)
 }
 
-func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
+func (d *Decoder) unmarshal(v reflect.Value, id byte) error {
 	switch id {
 
+	default:
+		return fmt.Errorf("unknown tag id %v while unmarshalling", id)
+
 	case tagByte:
+		x, err := d.dec.readByte()
+		if err != nil {
+			return err
+		}
+
 		switch v.Kind() {
 
 		default:
 			return fmt.Errorf("nbt: cannot marshal byte tag into %v", v.Kind())
 
 		case reflect.Int8:
-			x, err := dec.readByte()
-			if err != nil {
-				return err
-			}
-
 			v.SetInt(int64(x))
 
 		case reflect.Bool:
-			x, err := dec.readByte()
-			if err != nil {
-				return err
-			}
-
-			if x == 1 {
-				v.SetBool(true)
-			}
+			v.SetBool(x == 1)
 		}
 
 	case tagShort:
@@ -66,18 +71,18 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
 		}
 
-		x, err := dec.readShort()
+		x, err := d.dec.readInt16()
 		if err != nil {
 			return err
 		}
 		v.SetInt(int64(x))
 
 	case tagInt:
-		if v.Kind() != reflect.Int32 && v.Kind() != reflect.Int {
-			return fmt.Errorf("nbt: cannot marshal int tag into %v", v.Kind())
+		if v.Kind() != reflect.Int32 {
+			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
 		}
 
-		x, err := dec.readInt()
+		x, err := d.dec.readInt32()
 		if err != nil {
 			return err
 		}
@@ -85,20 +90,21 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 
 	case tagLong:
 		if v.Kind() != reflect.Int64 {
-			return fmt.Errorf("nbt: cannot marshal long tag into %v", v.Kind())
+			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
 		}
-		x, err := dec.readLong()
+
+		x, err := d.dec.readInt64()
 		if err != nil {
 			return err
 		}
-		v.SetInt(x)
+		v.SetInt(int64(x))
 
 	case tagFloat:
 		if v.Kind() != reflect.Float32 {
 			return fmt.Errorf("nbt: cannot marshal float tag into %v", v.Kind())
 		}
 
-		x, err := dec.readInt()
+		x, err := d.dec.readInt32()
 		if err != nil {
 			return err
 		}
@@ -109,7 +115,7 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 		if v.Kind() != reflect.Float64 {
 			return fmt.Errorf("nbt: cannot marshal double tag into %v", v.Kind())
 		}
-		x, err := dec.readLong()
+		x, err := d.dec.readInt64()
 		if err != nil {
 			return err
 		}
@@ -121,11 +127,11 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 			return fmt.Errorf("nbt: cannot marshal string tag into %v", v.Kind())
 		}
 
-		str, err := dec.readString()
+		str, err := d.dec.readUnsafeString()
 		if err != nil {
 			return err
 		}
-		v.SetString(str)
+		v.SetString(strings.Clone(str))
 
 	case tagList, tagByteArray, tagIntArray, tagLongArray:
 		if v.Kind() != reflect.Slice {
@@ -134,24 +140,29 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 		tagId := id
 		var err error
 		if id == tagList {
-			tagId, err = dec.readByte() //get the type of list
+			tagId, err = d.dec.readByte() //get the type of list
 			if err != nil {
 				return err
 			}
 		}
 
-		return dec.unmarshalList(v, tagId)
+		return d.unmarshalList(v, tagId)
 
 	case tagCompound:
 		switch v.Kind() {
 
 		case reflect.Map:
-			return dec.unmarshalCompoundMap(v)
+			return d.unmarshalMap(v)
 
 		case reflect.Struct:
-			finder := newStructFields(v)
+			m := generateMap(v)
+			defer func() {
+				clear(m)
+				valueMap.Put(m)
+			}()
+
 			for {
-				tagId, er := dec.readByte()
+				tagId, er := d.dec.readByte()
 				if er != nil {
 					return er
 				}
@@ -160,28 +171,22 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 					return nil
 				}
 
-				name, err := dec.readString()
+				name, err := d.dec.readUnsafeString()
 				if err != nil {
 					return err
 				}
 
-				//fmt.Println("trying to find", name, tagName(tagId))
-				vv, ok := finder.find(name)
+				vv, ok := m[name]
 				if !ok {
-					//fmt.Println("skipping", name, tagName(tagId))
-					if err = dec.skip(tagId); err != nil {
+					if err = d.skip(tagId); err != nil {
 						return err
 					}
-					//todo ability to read the tag without using unmarshal
-
 					continue
 				}
 
-				//fmt.Println(vv.Kind(), tagName(tagId), name)
-				if err = dec.unmarshal(vv, tagId); err != nil {
+				if err = d.unmarshal(vv, tagId); err != nil {
 					return err
 				}
-
 			}
 
 		default:
@@ -192,120 +197,39 @@ func (dec *Decoder) unmarshal(v reflect.Value, id byte) error {
 	return nil
 }
 
-func (dec *Decoder) skip(id byte) error {
-	switch id {
+var valueMap = sync.Pool{
+	New: func() any {
+		return make(map[string]reflect.Value)
+	}}
 
-	default:
-		panic(id)
+func generateMap(v reflect.Value) map[string]reflect.Value {
+	m := valueMap.Get().(map[string]reflect.Value)
+	ty := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		ft := ty.Field(i)
 
-	case tagByte:
-		if _, err := dec.rd.Read(dec.buf[:1]); err != nil {
-			return err
+		if !ft.IsExported() {
+			continue
 		}
 
-	case tagInt:
-		if _, err := dec.rd.Read(dec.buf[:4]); err != nil {
-			return err
+		found := ft.Name
+		if n, ok := ft.Tag.Lookup("nbt"); ok {
+			found = n
 		}
 
-	case tagDouble:
-
-	case tagString:
-		if err := dec.skipString(); err != nil {
-			return err
-		}
-
-	case tagList:
-		tagId, err := dec.readByte()
-		if err != nil {
-			return err
-		}
-
-		ln, err := dec.readInt()
-		if err != nil {
-			return err
-		}
-
-		if tagId == 0 || ln == 0 {
-			return nil
-		}
-
-		for i := 0; i < int(ln); i++ {
-			if err = dec.skip(tagId); err != nil {
-				return err
-			}
-		}
-
-	case tagCompound:
-		for {
-			tagId, err := dec.readByte()
-			if err != nil {
-				return err
-			}
-
-			if tagId == tagEnd {
-				return nil
-			}
-
-			_, err = dec.readString()
-			if err != nil {
-				return err
-			}
-
-			if err = dec.skip(tagId); err != nil {
-				return err
-			}
-		}
-
-	case tagByteArray:
-		ln, err := dec.readInt()
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < int(ln); i++ {
-			_, err = dec.rd.Read(dec.buf[:1])
-			if err != nil {
-				return err
-			}
-		}
-
-	case tagIntArray:
-		ln, err := dec.readInt()
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < int(ln); i++ {
-			_, err = dec.rd.Read(dec.buf[:4])
-			if err != nil {
-				return err
-			}
-		}
-	case tagLongArray:
-		ln, err := dec.readInt()
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < int(ln); i++ {
-			_, err = dec.rd.Read(dec.buf[:8])
-			if err != nil {
-				return err
-			}
-		}
-
+		m[found] = v.Field(i)
 	}
 
-	return nil
+	return m
 }
 
-func (dec *Decoder) unmarshalCompoundMap(v reflect.Value) error {
+func (d *Decoder) unmarshalMap(v reflect.Value) error {
 	if v.IsNil() {
 		v.Set(reflect.MakeMap(v.Type()))
 	}
+
 	for {
-		id, err := dec.readByte()
+		id, err := d.dec.readByte()
 		if err != nil {
 			return err
 		}
@@ -313,38 +237,19 @@ func (dec *Decoder) unmarshalCompoundMap(v reflect.Value) error {
 			return nil
 		}
 
-		name, err := dec.readString()
+		name, err := d.dec.readUnsafeString()
 		if err != nil {
 			return err
 		}
 
 		switch id {
-		default:
-			fmt.Println("cant unmarshal", tagName(id), "in map")
-
-		case tagList:
-			x := reflect.New(v.Type().Elem())
-
-			if err := dec.unmarshal(x.Elem(), tagList); err != nil {
-				return fmt.Errorf("%v unmarshalling %v in compound map", err, name)
-			}
-
-			v.SetMapIndex(reflect.ValueOf(name), x.Elem())
-
-		case tagCompound:
-			x := reflect.New(v.Type().Elem())
-
-			if err := dec.unmarshal(x.Elem(), tagCompound); err != nil {
-				return fmt.Errorf("%v unmarshalling %v in compound map", err, name)
-			}
-
-			v.SetMapIndex(reflect.ValueOf(name), x.Elem())
 
 		case tagString:
-			value, err := dec.readString()
+			str, err := d.dec.readUnsafeString()
 			if err != nil {
 				return err
 			}
+			value := strings.Clone(str)
 			if v.Type().Elem().Kind() == reflect.String {
 				m := v.Interface().(map[string]string)
 				m[name] = value
@@ -352,19 +257,25 @@ func (dec *Decoder) unmarshalCompoundMap(v reflect.Value) error {
 			}
 
 			v.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(value))
+
+		default:
+			x := reflect.New(v.Type().Elem())
+			if err := d.unmarshal(x.Elem(), id); err != nil {
+				return fmt.Errorf("%v unmarshalling %v into map", err, name)
+			}
+
+			v.SetMapIndex(reflect.ValueOf(name), x.Elem())
 		}
 	}
 }
-
-func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
-	l, err := dec.readInt()
+func (d *Decoder) unmarshalList(v reflect.Value, id byte) error {
+	length, err := d.dec.readInt32()
 	if err != nil {
 		return err
 	}
 
-	length := int(l)
-
 	sliceType := v.Type().Elem().Kind()
+
 	switch id {
 
 	case tagByte, tagByteArray:
@@ -375,7 +286,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readByte()
+			b, err := d.dec.readByte()
 			if err != nil {
 				return err
 			}
@@ -390,7 +301,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readShort()
+			b, err := d.dec.readInt16()
 			if err != nil {
 				return err
 			}
@@ -405,7 +316,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readInt()
+			b, err := d.dec.readInt32()
 			if err != nil {
 				return err
 			}
@@ -421,12 +332,12 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readLong()
+			b, err := d.dec.readInt64()
 			if err != nil {
 				return err
 			}
 
-			v.Index(i).SetInt(b)
+			v.Index(i).SetInt(int64(b))
 		}
 
 	case tagFloat:
@@ -437,7 +348,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readInt()
+			b, err := d.dec.readInt32()
 			if err != nil {
 				return err
 			}
@@ -453,7 +364,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			b, err := dec.readLong()
+			b, err := d.dec.readInt64()
 			if err != nil {
 				return err
 			}
@@ -469,12 +380,12 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.Grow(length)
 		v.SetLen(length)
 		for i := 0; i < length; i++ {
-			str, err := dec.readString()
+			str, err := d.dec.readUnsafeString()
 			if err != nil {
 				return err
 			}
 
-			v.Index(i).SetString(str)
+			v.Index(i).SetString(strings.Clone(str))
 		}
 
 	case tagList, tagCompound:
@@ -482,7 +393,7 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 		v.SetLen(length)
 
 		for i := 0; i < length; i++ {
-			if err := dec.unmarshal(v.Index(i), id); err != nil {
+			if err := d.unmarshal(v.Index(i), id); err != nil {
 				return err
 			}
 		}
@@ -491,117 +402,82 @@ func (dec *Decoder) unmarshalList(v reflect.Value, id byte) error {
 	return nil
 }
 
-// structFields used to search fields by any string
-type structFields struct {
-	og reflect.Value
+func (d *Decoder) skip(id byte) error {
+	switch id {
+	default:
+		return fmt.Errorf("unknown tag id %v while skipping\n", id)
 
-	vals []reflect.Value
-}
+	case tagByte, tagShort:
+		return d.dec.skip(int(id))
 
-func (s *structFields) find(name string) (reflect.Value, bool) {
-	ty := s.og.Type()
-	for i, val := range s.vals {
-		ft := ty.Field(i)
+	case tagInt, tagFloat:
+		return d.dec.skip(4)
 
-		if !ft.IsExported() {
-			continue
-		}
+	case tagLong, tagDouble:
+		return d.dec.skip(8)
 
-		found := ft.Name
-		if n, ok := ft.Tag.Lookup("nbt"); ok {
-			found = n
-		}
-
-		if found == name {
-			return val, true
-		}
-	}
-
-	return reflect.Value{}, false
-}
-
-func newStructFields(v reflect.Value) (s structFields) {
-	s.og = v
-
-	s.vals = make([]reflect.Value, 0, v.NumField())
-	for i := 0; i < v.NumField(); i++ {
-		s.vals = append(s.vals, v.Field(i))
-	}
-
-	return
-}
-
-func (dec *Decoder) readTag() (id byte, key string, err error) {
-	if id, err = dec.readByte(); err != nil {
-		return
-	}
-
-	if id == tagCompound {
-		key, err = dec.readString()
-	}
-
-	return
-}
-
-func (dec *Decoder) readByte() (byte, error) {
-	_, err := dec.rd.Read(dec.buf[:1])
-
-	return dec.buf[0], err
-}
-
-func (dec *Decoder) readShort() (int16, error) {
-	_, err := dec.rd.Read(dec.buf[:2])
-
-	v := int16(dec.buf[0])<<8 | int16(dec.buf[1])
-	return v, err
-}
-
-func (dec *Decoder) readInt() (int32, error) {
-	_, err := dec.rd.Read(dec.buf[:4])
-
-	v := int32(dec.buf[0])<<24 | int32(dec.buf[1])<<16 | int32(dec.buf[2])<<8 | int32(dec.buf[3])
-	return v, err
-}
-
-func (dec *Decoder) readLong() (int64, error) {
-	_, err := dec.rd.Read(dec.buf)
-
-	v := int64(dec.buf[0])<<56 | int64(dec.buf[1])<<48 | int64(dec.buf[2])<<40 | int64(dec.buf[3])<<32 |
-		int64(dec.buf[4])<<24 | int64(dec.buf[5])<<16 | int64(dec.buf[6])<<8 | int64(dec.buf[7])
-	return v, err
-}
-
-func (dec *Decoder) readString() (string, error) {
-	ln, err := dec.readShort()
-	if err != nil {
-		return "", err
-	}
-
-	str := make([]byte, ln)
-	_, err = dec.rd.Read(str)
-	return *(*string)(unsafe.Pointer(&str)), err
-}
-
-func (dec *Decoder) skipString() error {
-	ln, err := dec.readShort()
-	if err != nil {
+	case tagString:
+		_, err := d.dec.readUnsafeString()
 		return err
-	}
 
-	//how many bytes are left to read
-	left := int(ln)
-	for left != 0 {
-		maxx := 8
-		if left <= len(dec.buf) {
-			maxx = left
-		}
-
-		n, err := dec.rd.Read(dec.buf[:maxx])
+	case tagList:
+		tagId, err := d.dec.readByte()
 		if err != nil {
 			return err
 		}
 
-		left -= n
+		ln, err := d.dec.readInt32()
+		if err != nil {
+			return err
+		}
+
+		if tagId == 0 || ln == 0 {
+			return nil
+		}
+
+		for i := 0; i < ln; i++ {
+			if err = d.skip(tagId); err != nil {
+				return err
+			}
+		}
+
+	case tagCompound:
+		for {
+			tagId, err := d.dec.readByte()
+			if err != nil {
+				return err
+			}
+
+			if tagId == tagEnd {
+				return nil
+			}
+
+			_, err = d.dec.readUnsafeString()
+			if err != nil {
+				return err
+			}
+
+			if err = d.skip(tagId); err != nil {
+				return err
+			}
+		}
+
+	case tagByteArray, tagIntArray, tagLongArray:
+		ln, err := d.dec.readInt32()
+		if err != nil {
+			return err
+		}
+		var size int
+		switch id {
+		case tagByteArray:
+			size = 1
+		case tagIntArray:
+			size = 4
+		case tagLongArray:
+			size = 8
+		}
+
+		return d.dec.skip(size * ln)
 	}
 
 	return nil
