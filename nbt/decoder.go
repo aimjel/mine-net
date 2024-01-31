@@ -275,6 +275,7 @@ func (d *Decoder) unmarshalMap(v reflect.Value) error {
 		if err != nil {
 			return err
 		}
+		name = strings.Clone(name)
 
 		switch id {
 
