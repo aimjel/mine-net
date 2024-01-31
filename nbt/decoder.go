@@ -64,77 +64,101 @@ func (d *Decoder) unmarshal(v reflect.Value, id byte) error {
 
 		case reflect.Bool:
 			v.SetBool(x == 1)
+
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(x))
 		}
 
 	case tagShort:
-		if v.Kind() != reflect.Int16 {
-			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
-		}
-
 		x, err := d.dec.readInt16()
 		if err != nil {
 			return err
 		}
-		v.SetInt(int64(x))
+		switch v.Kind() {
+		default:
+			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
+
+		case reflect.Int16:
+			v.SetInt(int64(x))
+
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(x))
+		}
 
 	case tagInt:
-		if v.Kind() != reflect.Int32 {
-			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
-		}
-
 		x, err := d.dec.readInt32()
 		if err != nil {
 			return err
 		}
-		v.SetInt(int64(x))
+		switch v.Kind() {
+		case reflect.Int32, reflect.Int:
+			v.SetInt(int64(x))
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(x))
+		}
 
 	case tagLong:
-		if v.Kind() != reflect.Int64 {
-			return fmt.Errorf("nbt: cannot marshal short tag into %v", v.Kind())
-		}
-
 		x, err := d.dec.readInt64()
 		if err != nil {
 			return err
 		}
-		v.SetInt(int64(x))
-
-	case tagFloat:
-		if v.Kind() != reflect.Float32 {
-			return fmt.Errorf("nbt: cannot marshal float tag into %v", v.Kind())
+		switch v.Kind() {
+		case reflect.Int64:
+			v.SetInt(int64(x))
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(x))
 		}
 
+	case tagFloat:
 		x, err := d.dec.readInt32()
 		if err != nil {
 			return err
 		}
+		switch v.Kind() {
+		default:
+			return fmt.Errorf("nbt: cannot marshal float tag into %v", v.Kind())
 
-		v.SetFloat((float64)(math.Float32frombits((uint32)(x))))
+		case reflect.Float64:
+			v.SetFloat((float64)(math.Float32frombits((uint32)(x))))
+
+		case reflect.Interface:
+			v.Set(reflect.ValueOf((float64)(math.Float32frombits((uint32)(x)))))
+		}
 
 	case tagDouble:
-		if v.Kind() != reflect.Float64 {
-			return fmt.Errorf("nbt: cannot marshal double tag into %v", v.Kind())
-		}
 		x, err := d.dec.readInt64()
 		if err != nil {
 			return err
 		}
+		switch v.Kind() {
+		default:
+			return fmt.Errorf("nbt: cannot marshal double tag into %v", v.Kind())
 
-		v.SetFloat(math.Float64frombits((uint64)(x)))
+		case reflect.Float64:
+			v.SetFloat(math.Float64frombits((uint64)(x)))
 
-	case tagString:
-		if v.Kind() != reflect.String {
-			return fmt.Errorf("nbt: cannot marshal string tag into %v", v.Kind())
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(math.Float64frombits((uint64)(x))))
 		}
 
+	case tagString:
 		str, err := d.dec.readUnsafeString()
 		if err != nil {
 			return err
 		}
-		v.SetString(strings.Clone(str))
+
+		switch v.Kind() {
+		default:
+			return fmt.Errorf("nbt: cannot marshal string tag into %v", v.Kind())
+
+		case reflect.String:
+			v.SetString(strings.Clone(str))
+		case reflect.Interface:
+			v.Set(reflect.ValueOf(strings.Clone(str)))
+		}
 
 	case tagList, tagByteArray, tagIntArray, tagLongArray:
-		if v.Kind() != reflect.Slice {
+		if v.Kind() != reflect.Slice && v.Kind() != reflect.Interface {
 			return fmt.Errorf("nbt: cannot marshal list tag into %v", v.Kind())
 		}
 		tagId := id
@@ -146,10 +170,20 @@ func (d *Decoder) unmarshal(v reflect.Value, id byte) error {
 			}
 		}
 
-		return d.unmarshalList(v, tagId)
+		length, err := d.dec.readInt32()
+		if err != nil {
+			return err
+		}
+
+		return d.unmarshalList(v, tagId, length)
 
 	case tagCompound:
 		switch v.Kind() {
+		case reflect.Interface:
+			if v.IsNil() {
+				v.Set(reflect.MakeMap(reflect.TypeOf(map[string]any{})))
+				return d.unmarshalMap(v.Elem())
+			}
 
 		case reflect.Map:
 			return d.unmarshalMap(v)
@@ -268,9 +302,32 @@ func (d *Decoder) unmarshalMap(v reflect.Value) error {
 		}
 	}
 }
-func (d *Decoder) unmarshalList(v reflect.Value, id byte) error {
-	length, err := d.dec.readInt32()
-	if err != nil {
+func (d *Decoder) unmarshalList(v reflect.Value, id byte, length int) error {
+	if v.Type().Kind() == reflect.Interface {
+		var newV reflect.Value
+		switch id {
+		case tagByte, tagByteArray:
+			newV = reflect.MakeSlice(reflect.TypeOf([]int8{}), length, length)
+		case tagShort:
+			newV = reflect.MakeSlice(reflect.TypeOf([]int16{}), length, length)
+		case tagInt, tagIntArray:
+			newV = reflect.MakeSlice(reflect.TypeOf([]int32{}), length, length)
+		case tagLong, tagLongArray:
+			newV = reflect.MakeSlice(reflect.TypeOf([]int64{}), length, length)
+		case tagFloat:
+			newV = reflect.MakeSlice(reflect.TypeOf([]float32{}), length, length)
+		case tagDouble:
+			newV = reflect.MakeSlice(reflect.TypeOf([]float64{}), length, length)
+		case tagString:
+			newV = reflect.MakeSlice(reflect.TypeOf([]string{}), length, length)
+		case tagList, tagCompound:
+			newV = reflect.MakeSlice(reflect.TypeOf([]any{}), length, length)
+		}
+
+		x := reflect.New(newV.Type()).Elem()
+		x.Set(newV)
+		err := d.unmarshalList(x, id, length)
+		v.Set(x)
 		return err
 	}
 
