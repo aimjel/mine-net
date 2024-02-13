@@ -1,16 +1,45 @@
 package nbt
 
 import (
+	"errors"
 	"fmt"
-	"io"
 )
 
-func checkValid(data []byte) error {
+type ErrUnknownTag struct {
+	tag byte
+	at  int
+}
+
+func (e ErrUnknownTag) Error() string {
+	return fmt.Sprintf("unknown tag id %v at index %v", e.tag, e.at)
+}
+
+func checkValid(data []byte) (err error) {
 	if len(data) < 4 || data[0] != tagCompound {
 		return fmt.Errorf("data must always start with a compound tag")
 	}
 
-	return (&scanner{buf: data}).scan(data[0])
+	defer func() {
+		if x := recover(); x != nil {
+			switch e := x.(type) {
+
+			case error:
+				err = e
+
+			case string:
+				err = errors.New(e)
+			}
+		}
+	}()
+	//set reader position to 1, since we supplied the first byte
+	s := &scanner{buf: data, at: 1}
+	s.scanString()
+	s.scan(data[0])
+
+	if s.at != len(data) {
+		panic("scanner did not consume all data")
+	}
+	return err
 }
 
 // scanner verifies nbt input syntax
@@ -19,158 +48,86 @@ type scanner struct {
 	at  int
 }
 
-func (s *scanner) scan(id byte) error {
+func (s *scanner) scan(id byte) {
 	switch id {
-
 	default:
-		return fmt.Errorf("nbt: unknown tag id at %v", s.at)
+		panic(ErrUnknownTag{tag: id, at: s.at})
 
 	case tagByte, tagShort, tagInt, tagLong, tagFloat, tagDouble:
 		n := tagPayload(id)
-		if s.at+n > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
 		s.at += n
 
 	case tagString:
-		if s.at+2 > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-
-		length := int(uint16(s.buf[s.at])<<8 | uint16(s.buf[s.at+1]))
-		s.at += 2
-
-		if s.at+length > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-
-		s.at += length
-
-	case tagList:
-		return s.list()
+		s.scanString()
 
 	case tagCompound:
-		return s.compound()
+		s.scanCompound()
+
+	case tagList:
+		s.scanList()
 
 	case tagByteArray, tagIntArray, tagLongArray:
-		length, err := s.read32()
-		if err != nil {
-			return err
-		}
-
-		length *= arrayTagPayload(id)
-
-		if s.at+length > len(s.buf) {
-			return io.ErrUnexpectedEOF
-		}
-
-		s.at += length
+		ln := s.read32()
+		s.at += tagPayload(id) * ln
 	}
-
-	return nil
 }
 
-func (s *scanner) list() error {
-	if s.at+1 > len(s.buf) {
-		return io.ErrUnexpectedEOF
-	}
-
+func (s *scanner) scanList() {
 	id := s.buf[s.at]
 	s.at++
 
-	length, err := s.read32()
-	if err != nil {
-		return err
+	ln := s.read32()
+
+	if id == 0 || ln == 0 {
+		return
 	}
 
-	if id == tagEnd || length == 0 {
-		return nil
+	for i := 0; i < ln; i++ {
+		s.scan(id)
 	}
-
-	for i := 0; i < length; i++ {
-		if err = s.scan(id); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
-func (s *scanner) compound() error {
+func (s *scanner) scanCompound() {
 	for {
-		if s.at+1 > len(s.buf) {
-			if s.buf[s.at-1] == tagEnd {
-				return nil
-			}
-
-			return io.ErrUnexpectedEOF
-		}
-
 		id := s.buf[s.at]
 		s.at++
 
 		if id == tagEnd {
-			return nil
+			return
 		}
 
-		if s.at+2 > len(s.buf) { // check if we have enough data to read a short
-			return io.ErrUnexpectedEOF
-		}
-
-		length := int(uint16(s.buf[s.at])<<8 | uint16(s.buf[s.at+1]))
-		s.at += 2
-
-		if s.at+length > len(s.buf) { // checks the length of the string is valid
-			return io.ErrUnexpectedEOF
-		}
-
-		s.at += length
-
-		if err := s.scan(id); err != nil {
-			return err
-		}
+		s.scanString()
+		s.scan(id)
 	}
 }
 
-func (s *scanner) read32() (int, error) {
-	if s.at+4 > len(s.buf) {
-		return 0, io.ErrUnexpectedEOF
-	}
+func (s *scanner) scanString() {
+	length := int(uint16(s.buf[s.at])<<8 | uint16(s.buf[s.at+1]))
+	s.at += 2
 
+	s.at += length
+}
+
+func (s *scanner) read32() int {
 	data := s.buf[s.at : s.at+4]
 	s.at += 4
-	return int(uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3])), nil
+	return int(uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3]))
 }
 
-// tagPayload returns the payload of a nbt tag, if 0 is returned than the payload varies
 func tagPayload(id byte) int {
 	switch id {
-	case tagByte:
+	case tagByte, tagByteArray:
 		return 1
 	case tagShort:
 		return 2
-	case tagInt, tagFloat:
+	case tagInt, tagFloat, tagIntArray:
 		return 4
-	case tagLong, tagDouble:
+	case tagLong, tagDouble, tagLongArray:
 		return 8
 	default:
 		return 0
 	}
 }
-
-func arrayTagPayload(id byte) int {
-	switch id {
-	case tagByteArray:
-		return 1
-	case tagIntArray:
-		return 4
-	case tagLongArray:
-		return 8
-	default:
-		return 0
-	}
-}
-
 func tagName(id byte) string {
 	switch id {
 	case tagEnd:

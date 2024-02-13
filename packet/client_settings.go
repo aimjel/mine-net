@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type ClientSettings struct {
 	Locale               string
 	ViewDistance         int8
@@ -15,7 +17,7 @@ func (s ClientSettings) ID() int32 {
 	return 0x08
 }
 
-func (s *ClientSettings) Decode(r *Reader) error {
+func (s *ClientSettings) Decode(r *encoding.Reader) error {
 	_ = r.String(&s.Locale)
 	_ = r.Int8(&s.ViewDistance)
 	_ = r.VarInt(&s.ChatMode)
@@ -27,7 +29,7 @@ func (s *ClientSettings) Decode(r *Reader) error {
 	return r.Bool(&s.AllowServerListings)
 }
 
-func (s ClientSettings) Encode(w Writer) error {
+func (s ClientSettings) Encode(w *encoding.Writer) error {
 	_ = w.String(s.Locale)
 	_ = w.Int8(s.ViewDistance)
 	_ = w.VarInt(s.ChatMode)

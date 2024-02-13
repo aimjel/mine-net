@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type Particle struct {
 	ParticleID                int32
 	LongDistance              bool
@@ -14,11 +16,11 @@ func (p *Particle) ID() int32 {
 	return 0x24
 }
 
-func (p *Particle) Decode(r *Reader) error {
+func (p *Particle) Decode(r *encoding.Reader) error {
 	return nil
 }
 
-func (p *Particle) Encode(w Writer) error {
+func (p *Particle) Encode(w *encoding.Writer) error {
 	_ = w.Int32(p.ParticleID)
 	_ = w.Bool(p.LongDistance)
 	_ = w.Float64(p.X)

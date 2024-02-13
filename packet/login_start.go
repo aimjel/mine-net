@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type LoginStart struct {
 	Name string
 	UUID [16]byte
@@ -9,7 +11,7 @@ func (s LoginStart) ID() int32 {
 	return 0x00
 }
 
-func (s *LoginStart) Decode(r *Reader) error {
+func (s *LoginStart) Decode(r *encoding.Reader) error {
 	_ = r.String(&s.Name)
 	var hasUUID bool
 	_ = r.Bool(&hasUUID)
@@ -20,7 +22,7 @@ func (s *LoginStart) Decode(r *Reader) error {
 	return nil
 }
 
-func (s LoginStart) Encode(w Writer) error {
+func (s LoginStart) Encode(w *encoding.Writer) error {
 	_ = w.String(s.Name)
 	var hasUUID bool
 	_ = w.Bool(hasUUID)

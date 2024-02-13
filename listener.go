@@ -2,6 +2,7 @@ package minecraft
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -9,13 +10,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/aimjel/minecraft/protocol/types"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 
+	"github.com/aimjel/minecraft/chat"
 	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
 )
 
 type ListenConfig struct {
@@ -104,64 +106,57 @@ func (l *Listener) handle(conn *net.TCPConn) {
 	c := newConn(conn)
 
 	var pk packet.Handshake
-	if err := c.DecodePacket(&pk); err != nil {
-		c.Close(err)
-		return
-	}
+	var err = c.DecodePacket(&pk)
 
 	switch pk.NextState {
 
 	case 0x01: //status
-		if err := l.handleStatus(c); err != nil && l.cfg.Status != nil {
-			c.Close(fmt.Errorf("%v while handling status", err))
+		if l.cfg.Status != nil {
+			if err = l.cfg.Status.handleStatus(c); err != nil {
+				c.Close(fmt.Errorf("%v while handling status", err))
+			}
 		}
 
 	case 0x02:
-		if pk.ProtocolVersion > int32(l.cfg.Status.s.Version.Protocol) {
-			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.cfg.Messages.ProtocolTooNew,
+		if pk.ProtocolVersion != int32(l.cfg.Status.s.Version.Protocol) {
+			reason := l.cfg.Messages.ProtocolTooNew
+			if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
+				reason = l.cfg.Messages.ProtocolTooOld
+			}
+
+			err = c.SendPacket(&packet.DisconnectLogin{
+				Reason: chat.NewMessage(reason),
 			})
-		} else if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
-			c.SendPacket(&packet.DisconnectLogin{
-				Reason: l.cfg.Messages.ProtocolTooOld,
-			})
+			break
 		}
-		if err := l.handleLogin(c); err != nil {
-			c.Close(fmt.Errorf("%v while handling login", err))
-		} else {
-			if x := l.cfg.CompressionThreshold; x != -1 {
+
+		if err = l.handleLogin(c); err == nil {
+			if x := l.cfg.CompressionThreshold; x >= 0 {
+				if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
+					err = fmt.Errorf("%v sending set compression", err)
+					break
+				}
+
 				c.enableCompression(x)
 			}
 
-			if c.SendPacket(&packet.LoginSuccess{Info: *c.Info}) != nil {
-				c.Close(fmt.Errorf("%v while sending login success packet in login", err))
-			} else {
-				c.pool = &basicPool{}
-				l.await <- c
-				return //return so it doesn't close the connection
+			if err = c.SendPacket(&packet.LoginSuccess{
+				Name:       c.name,
+				UUID:       c.uuid,
+				Properties: c.properties,
+			}); err != nil {
+				err = fmt.Errorf("%v sending login success", err)
+				break
 			}
+
+			c.Pool = &ServerBoundPool{}
+			l.await <- c
+			return //return so it doesn't close the connection
 		}
+		err = fmt.Errorf("%v handling login state", err)
 	}
 
-	c.Close(nil)
-}
-
-func (l *Listener) handleStatus(c *Conn) error {
-	var rq packet.Request
-	if err := c.DecodePacket(&rq); err != nil {
-		return err
-	}
-
-	if err := c.SendPacket(&packet.Response{JSON: l.cfg.Status.json()}); err != nil {
-		return fmt.Errorf("%v writing response packet", err)
-	}
-
-	var pg packet.Ping
-	if err := c.DecodePacket(&pg); err != nil {
-		return fmt.Errorf("%v decoding ping packet", err)
-	}
-
-	return c.SendPacket(&packet.Pong{Payload: pg.Payload})
+	c.Close(err)
 }
 
 func (l *Listener) handleLogin(c *Conn) error {
@@ -172,8 +167,8 @@ func (l *Listener) handleLogin(c *Conn) error {
 
 	if l.key == nil {
 		var uuid [16]byte
-		_, _ = rand.Read(uuid[:])
-		c.Info = &player.Info{UUID: uuid, Name: ls.Name}
+		newUUIDv3(ls.Name, uuid[:])
+		c.name, c.uuid = ls.Name, uuid
 		return nil
 	}
 
@@ -194,9 +189,8 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	var (
-		sharedSecret, verifyToken []byte
-	)
+	var sharedSecret, verifyToken []byte
+
 	if sharedSecret, err = l.key.Decrypt(nil, encryptResp.SharedSecret, nil); err != nil {
 		return err
 	}
@@ -224,13 +218,9 @@ func (l *Listener) handleLogin(c *Conn) error {
 	}
 
 	var data struct {
-		Id         string `json:"id"`
-		Name       string `json:"name"`
-		Properties []struct {
-			Name      string `json:"name"`
-			Value     string `json:"value"`
-			Signature string `json:"signature"`
-		} `json:"properties"`
+		Id         string           `json:"id"`
+		Name       string           `json:"name"`
+		Properties []types.Property `json:"properties"`
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&data); err != nil && err != io.EOF {
@@ -243,14 +233,11 @@ func (l *Listener) handleLogin(c *Conn) error {
 		return err
 	}
 
-	c.Info = &player.Info{Name: data.Name, Properties: []struct {
-		Name      string
-		Value     string
-		Signature string
-	}(data.Properties)}
+	c.name, c.properties = data.Name, data.Properties
 
-	if n := copy(c.Info.UUID[:], uuid); n != 16 {
-		return fmt.Errorf("expected 16 bytes from uuid got %v", n)
+	if n := copy(c.uuid[:], uuid); n != 16 {
+		c.SendPacket(&packet.DisconnectLogin{Reason: chat.NewMessage(l.cfg.Messages.OnlineMode)})
+		return fmt.Errorf("offline player on online server")
 	}
 	return nil
 }
@@ -310,4 +297,15 @@ func twosComplement(p []byte) {
 			break
 		}
 	}
+}
+
+func newUUIDv3(name string, out []byte) {
+	h := md5.New()
+	h.Write([]byte("OfflinePlayer:" + name))
+	id := h.Sum(nil)
+
+	id[6] = (id[6] & 0x0f) | uint8((3&0xf)<<4)
+	id[8] = (id[8] & 0x3f) | 0x80 // RFC 4122 variant
+
+	copy(out, id)
 }

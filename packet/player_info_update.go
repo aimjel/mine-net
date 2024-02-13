@@ -1,23 +1,24 @@
 package packet
 
 import (
-	"github.com/aimjel/minecraft/player"
+	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minecraft/protocol/types"
 )
 
 type PlayerInfoUpdate struct {
 	Actions byte
-	Players []player.Info
+	Players []types.PlayerInfo
 }
 
 func (i *PlayerInfoUpdate) ID() int32 {
 	return 0x3A
 }
 
-func (i *PlayerInfoUpdate) Decode(r *Reader) error {
+func (i *PlayerInfoUpdate) Decode(r *encoding.Reader) error {
 	panic("implement me")
 }
 
-func (i *PlayerInfoUpdate) Encode(w Writer) error {
+func (i *PlayerInfoUpdate) Encode(w *encoding.Writer) error {
 	_ = w.Uint8(i.Actions)
 	_ = w.VarInt(int32(len(i.Players)))
 	for _, p := range i.Players {
@@ -38,13 +39,15 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 		}
 
 		if i.Actions&0x02 != 0 {
-			//initialize chat
-			//has signature data
-			_ = w.Bool(false)
-			//chat session UUID
-			//expiry time
-			//public key
-			//signature
+			if p.KeySignature == nil {
+				w.Bool(false)
+			} else {
+				w.Bool(true)
+				_ = w.UUID(p.ChatSessionID)
+				_ = w.Int64(p.ExpiresAt)
+				_ = w.ByteArray(p.PublicKey)
+				_ = w.ByteArray(p.KeySignature)
+			}
 		}
 
 		if i.Actions&0x04 != 0 {
@@ -64,9 +67,9 @@ func (i *PlayerInfoUpdate) Encode(w Writer) error {
 
 		if i.Actions&0x20 != 0 {
 			//updates display name
-			_ = w.Bool(p.HasDisplayName)
-			if p.HasDisplayName {
-				_ = w.String(p.DisplayName)
+			_ = w.Bool(p.DisplayName != nil)
+			if p.DisplayName != nil {
+				_ = w.String(p.DisplayName.String())
 			}
 		}
 	}

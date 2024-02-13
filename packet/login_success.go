@@ -1,26 +1,28 @@
 package packet
 
-import "github.com/aimjel/minecraft/player"
+import (
+	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minecraft/protocol/types"
+)
 
 type LoginSuccess struct {
-	player.Info
+	UUID [16]byte
+	Name string
+
+	Properties []types.Property
 }
 
 func (s LoginSuccess) ID() int32 {
 	return 0x02
 }
 
-func (s *LoginSuccess) Decode(r *Reader) error {
+func (s *LoginSuccess) Decode(r *encoding.Reader) error {
 	_ = r.UUID(&s.UUID)
 	_ = r.String(&s.Name)
 
 	var length int32
 	_ = r.VarInt(&length)
-	prpty := make([]struct {
-		Name      string
-		Value     string
-		Signature string
-	}, length)
+	prpty := make([]types.Property, length)
 
 	for i := int32(0); i < length; i++ {
 		p := prpty[i]
@@ -38,7 +40,7 @@ func (s *LoginSuccess) Decode(r *Reader) error {
 	return nil
 }
 
-func (s LoginSuccess) Encode(w Writer) error {
+func (s LoginSuccess) Encode(w *encoding.Writer) error {
 	_ = w.UUID(s.UUID)
 	_ = w.String(s.Name)
 

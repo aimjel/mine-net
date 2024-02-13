@@ -3,6 +3,7 @@ package minecraft
 import (
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minecraft/protocol/encoding"
 	"net"
 	"strconv"
 )
@@ -12,17 +13,12 @@ type Dialer struct {
 }
 
 func (d *Dialer) Dial(address string) (*Conn, error) {
-	addr, err := net.ResolveTCPAddr("tcp4", address)
+	c, err := net.Dial("tcp4", address)
 	if err != nil {
 		return nil, err
 	}
 
-	tcp, err := net.DialTCP("tcp4", nil, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	mccon := newConn(tcp)
+	mccon := newConn(c.(*net.TCPConn))
 	if err = doLogin(mccon, address, d.Username); err != nil {
 		return nil, err
 	}
@@ -45,29 +41,37 @@ func doLogin(c *Conn, address, username string) error {
 	if err := c.SendPacket(&packet.LoginStart{Name: username}); err != nil {
 		return err
 	}
-	c.pool = nopPool{}
 
 	for {
-		pk, err := c.ReadPacket()
+		pack, err := c.ReadPacket()
 		if err != nil {
 			return err
 		}
 
-		//set compression packet
-		if pk.ID() == 0x03 {
-			var sc packet.SetCompression
+		pk := pack.(packet.Unknown)
+		switch pk.ID() {
 
-			uk := pk.(packet.Unknown)
-			rd := packet.NewReader(uk.Payload)
-			var id int32
-			_ = rd.VarInt(&id) //reads the id
-			sc.Decode(rd)
+		case 0x01:
+			return fmt.Errorf("online mode is not supported")
 
-			c.dec.EnableDecompression()
-			c.enc.EnableCompression(int(sc.Threshold))
-			fmt.Println("set compression packet", sc.Threshold)
-			break
+		case 0x02:
+			var lgSuccess packet.LoginSuccess
+			if err = lgSuccess.Decode(encoding.NewReader(pk.Payload)); err != nil {
+				return err
+			}
+
+			c.name = lgSuccess.Name
+			c.uuid = lgSuccess.UUID
+			c.properties = lgSuccess.Properties
+			return nil
+
+		case 0x03:
+			var com packet.SetCompression
+			if err = com.Decode(encoding.NewReader(pk.Payload)); err != nil {
+				return err
+			}
+
+			c.enableCompression(com.Threshold)
 		}
 	}
-	return nil
 }

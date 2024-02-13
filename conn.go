@@ -1,11 +1,13 @@
 package minecraft
 
 import (
+	"bytes"
 	"crypto/aes"
 	"fmt"
 	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/player"
 	"github.com/aimjel/minecraft/protocol"
+	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minecraft/protocol/types"
 	"net"
 	"sync"
 )
@@ -16,22 +18,45 @@ type Conn struct {
 	dec *protocol.Decoder
 
 	enc *protocol.Encoder
+	//buf which encoder writes to
+	buf *bytes.Buffer
 
-	pool Pool
-
-	Info *player.Info
+	Pool Pool
 
 	//encMu protects the Encoder from data races if two goroutines try to write a packet
 	encMu sync.Mutex
+
+	//name is the clients in-game name
+	name string
+
+	uuid [16]byte
+
+	properties []types.Property
+}
+
+func (c *Conn) Name() string {
+	return c.name
+}
+
+func (c *Conn) UUID() [16]byte {
+	return c.uuid
+}
+
+func (c *Conn) Properties() []types.Property {
+	return c.properties
 }
 
 func newConn(c *net.TCPConn) *Conn {
+	b := bytes.NewBuffer(make([]byte, 0, 4096))
 	return &Conn{
 		tcpCn: c,
 
 		dec: protocol.NewDecoder(c),
 
-		enc: protocol.NewEncoder(),
+		enc: protocol.NewEncoder(b),
+		buf: b,
+
+		Pool: NopPool{},
 	}
 }
 
@@ -41,18 +66,19 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 		return nil, err
 	}
 
-	pw := packet.NewReader(data)
+	reader := encoding.NewReader(data)
 	var id int32
-	if err = pw.VarInt(&id); err != nil {
+	if err = reader.VarInt(&id); err != nil {
 		return nil, fmt.Errorf("%v decoding packet id", err)
 	}
 
-	pk := c.pool.Get(id)
+	pk := c.Pool.Get(id)
 	if pk == nil {
-		return packet.Unknown{Id: id, Payload: data}, nil
+		l := protocol.VarIntSize(int(id))
+		return packet.Unknown{Id: id, Payload: data[l:]}, nil
 	}
 
-	if err = pk.Decode(pw); err != nil {
+	if err = pk.Decode(reader); err != nil {
 		return nil, fmt.Errorf("%v decoding packet contents for %#v", err, pk)
 	}
 
@@ -65,7 +91,7 @@ func (c *Conn) DecodePacket(pk packet.Packet) error {
 		return err
 	}
 
-	rd := packet.NewReader(payload)
+	rd := encoding.NewReader(payload)
 
 	var id int32
 	if err = rd.VarInt(&id); err != nil {
@@ -90,8 +116,8 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 
-	if err := c.enc.EncodePacket(pk); err != nil {
-		return err
+	if err := c.writePacket(pk); err != nil {
+		return fmt.Errorf("%w writing %+v to buffer", err, pk)
 	}
 
 	data := c.enc.Flush()
@@ -110,7 +136,23 @@ func (c *Conn) SendPacket(pk packet.Packet) error {
 func (c *Conn) WritePacket(pk packet.Packet) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
-	return c.enc.EncodePacket(pk)
+	return c.writePacket(pk)
+}
+
+func (c *Conn) writePacket(pk packet.Packet) error {
+	start := c.buf.Len() //records the start of the packet data
+	pw := encoding.NewWriter(c.buf)
+
+	//ignore errors since writing to a bytes.Buffer object
+	//always returns nil
+	_ = pw.VarInt(pk.ID())
+	_ = pk.Encode(pw)
+
+	end := c.buf.Len()
+
+	c.buf.Truncate(start)
+
+	return c.enc.EncodePacket(c.buf.Bytes()[start:end])
 }
 
 func (c *Conn) FlushPackets() error {
@@ -136,10 +178,6 @@ func (c *Conn) enableEncryption(sharedSecret []byte) error {
 }
 
 func (c *Conn) enableCompression(threshold int32) {
-	if err := c.SendPacket(&packet.SetCompression{Threshold: threshold}); err != nil {
-		panic(err)
-	}
-
 	c.dec.EnableDecompression()
 	c.enc.EnableCompression(int(threshold))
 }

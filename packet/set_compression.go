@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SetCompression struct {
 	Threshold int32
 }
@@ -8,10 +10,10 @@ func (s SetCompression) ID() int32 {
 	return 0x03
 }
 
-func (s *SetCompression) Decode(r *Reader) error {
+func (s *SetCompression) Decode(r *encoding.Reader) error {
 	return r.VarInt(&s.Threshold)
 }
 
-func (s SetCompression) Encode(w Writer) error {
+func (s SetCompression) Encode(w *encoding.Writer) error {
 	return w.VarInt(s.Threshold)
 }

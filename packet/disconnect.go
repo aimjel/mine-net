@@ -1,30 +1,24 @@
 package packet
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
 )
 
 type DisconnectLogin struct {
-	Reason string
+	Reason chat.Message
 }
 
 func (l DisconnectLogin) ID() int32 {
 	return 0x00
 }
 
-func (l *DisconnectLogin) Decode(r *Reader) error {
-	return r.String(&l.Reason)
+func (l *DisconnectLogin) Decode(r *encoding.Reader) error {
+	return NotImplemented
 }
 
-func (l DisconnectLogin) Encode(w Writer) error {
-	b, err := json.Marshal(chat.NewMessage(l.Reason))
-	if err != nil {
-		return fmt.Errorf("%v marshaling disconnect(login) reason", err)
-	}
-
-	return w.ByteArray(b)
+func (l DisconnectLogin) Encode(w *encoding.Writer) error {
+	return w.String(l.Reason.String())
 }
 
 type DisconnectPlay struct {

@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 // TestPacket is a packet which holds every possible
 // data type which can be received or sent to the client
 type TestPacket struct {
@@ -32,7 +34,7 @@ func (t *TestPacket) ID() int32 {
 	return -0x01
 }
 
-func (t *TestPacket) Decode(r *Reader) error {
+func (t *TestPacket) Decode(r *encoding.Reader) error {
 	r.Bool(&t.Boolean)
 	r.Int8(&t.Byte)
 	r.Uint8(&t.UnsignedByte)
@@ -54,7 +56,7 @@ func (t *TestPacket) Decode(r *Reader) error {
 	return r.ByteArray(&t.ByteArray)
 }
 
-func (t *TestPacket) Encode(w Writer) error {
+func (t *TestPacket) Encode(w *encoding.Writer) error {
 	w.Bool(t.Boolean)
 	w.Int8(t.Byte)
 	w.Uint8(t.UnsignedByte)

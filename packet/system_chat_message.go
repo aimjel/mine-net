@@ -1,21 +1,23 @@
 package packet
 
-import "github.com/aimjel/minecraft/chat"
+import (
+	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minecraft/protocol/encoding"
+)
 
 type SystemChatMessage struct {
-	Content string
+	Message chat.Message
 }
 
 func (m SystemChatMessage) ID() int32 {
 	return 0x64
 }
 
-func (m *SystemChatMessage) Decode(r *Reader) error {
-	return r.String(&m.Content)
+func (m *SystemChatMessage) Decode(r *encoding.Reader) error {
+	return NotImplemented
 }
 
-func (m SystemChatMessage) Encode(w Writer) error {
-	content := chat.NewMessage(m.Content)
-	w.String(content.String())
+func (m SystemChatMessage) Encode(w *encoding.Writer) error {
+	w.String(m.Message.String())
 	return w.Bool(false)
 }

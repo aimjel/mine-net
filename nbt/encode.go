@@ -3,7 +3,9 @@ package nbt
 import (
 	"fmt"
 	"io"
+	"math"
 	"reflect"
+	"unsafe"
 )
 
 type Encoder struct {
@@ -16,12 +18,11 @@ func NewEncoder(w io.Writer) *Encoder {
 
 func (e *Encoder) Encode(v any) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Struct {
+	if rv.Kind() == reflect.Struct || rv.Kind() == reflect.Map {
 		//writes the nameless compound
 		if _, err := e.w.Write([]byte{10, 0, 0}); err != nil {
 			return err
 		}
-
 	}
 	return e.encode(rv)
 }
@@ -29,80 +30,206 @@ func (e *Encoder) Encode(v any) error {
 func (e *Encoder) encode(v reflect.Value) error {
 	switch v.Kind() {
 
-	case reflect.Struct:
-		vt := v.Type()
-		for i := 0; i < v.NumField(); i++ {
-			fieldType := vt.Field(i)
+	case reflect.Bool:
+		if v.Bool() {
+			e.w.Write([]byte{1})
+		} else {
+			e.w.Write([]byte{0})
+		}
 
+	case reflect.Int8:
+		e.w.Write([]byte{byte(v.Int())})
+
+	case reflect.Int16:
+		e.write16(int(v.Int()))
+
+	case reflect.Int, reflect.Int32:
+		e.write32(int(v.Int()))
+
+	case reflect.Int64:
+		e.write64(v.Int())
+
+	case reflect.Float32:
+		e.write32(int(math.Float32bits(float32(v.Float()))))
+
+	case reflect.Float64:
+		e.write64(int64(math.Float64bits(v.Float())))
+
+	case reflect.String:
+		e.writeString(v.String())
+
+	case reflect.Slice:
+		switch v.Type().Elem().Kind() {
+		default:
+			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
+			ln := v.Len()
+			e.write32(ln)
+
+			for i := 0; i < ln; i++ {
+				if err := e.encode(v.Index(i)); err != nil {
+					return fmt.Errorf("%v encoding %v element in list tag", err, i)
+				}
+			}
+
+		case reflect.Slice:
+			ln := v.Len()
+			_, _ = e.w.Write([]byte{nbtId(v.Type().Elem())})
+			e.write32(ln)
+
+			for i := 0; i < ln; i++ {
+				if err := e.encode(v.Index(i)); err != nil {
+					return fmt.Errorf("%v encoding %v element in list tag", err, i)
+				}
+			}
+
+		case reflect.Int8:
+			ln := v.Len()
+			e.write32(ln)
+
+			x := v.Interface().([]int8)
+			e.w.Write(*(*[]byte)(unsafe.Pointer(&x)))
+
+		case reflect.Int64:
+			ln := v.Len()
+			e.write32(ln)
+
+			x := v.Interface().([]int64)
+			for i := 0; i < ln; i++ {
+				e.write64(x[i])
+			}
+
+		case reflect.Int32:
+			ln := v.Len()
+			e.write32(ln)
+
+			x := v.Interface().([]int32)
+			for i := 0; i < ln; i++ {
+				e.write32(int(x[i]))
+			}
+		}
+
+	case reflect.Struct:
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			fieldType := t.Field(i)
 			if !fieldType.IsExported() {
 				continue
 			}
 
-			fieldValue := v.Field(i)
-			//writes tag id
-			if id := nbtId(fieldValue); id == 0 {
-				return fmt.Errorf("unknown reflect value")
-			} else {
-				_, _ = e.w.Write([]byte{id})
-			}
-
-			fieldName, ok := fieldType.Tag.Lookup("nbt")
+			name, ok := fieldType.Tag.Lookup("nbt")
 			if !ok {
-				fieldName = fieldType.Name
+				name = fieldType.Name
 			}
 
-			l := uint16(len(fieldName))
-			//write name length
-			_, _ = e.w.Write([]byte{byte(l >> 8), byte(l)})
-			//write name
-			_, _ = e.w.Write([]byte(fieldName))
-
-			if err := e.encode(fieldValue); err != nil {
-				return err
+			fv := v.Field(i)
+			if fv.Kind() == reflect.Interface {
+				//extracts the value hiding behind the interface
+				fv = v.Elem()
 			}
-		}
-
-		//write end tag
-		_, err := e.w.Write([]byte{0})
-		return err
-
-	case reflect.Slice:
-		id := nbtId(v)
-
-		switch id {
-
-		case tagIntArray:
-			l := v.Len()
-			_, _ = e.w.Write([]byte{byte(l >> 24), byte(l >> 16), byte(l >> 8), byte(l)})
-
-			intArray := v.Interface().([]int32)
-			for _, x := range intArray {
-				_, _ = e.w.Write([]byte{byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+			if fv.Kind() == reflect.Map || fv.Kind() == reflect.Slice {
+				if fv.IsNil() {
+					continue
+				}
 			}
 
-		case tagLongArray:
-			l := v.Len()
-			_, _ = e.w.Write([]byte{byte(l >> 24), byte(l >> 16), byte(l >> 8), byte(l)})
-
-			longArray := v.Interface().([]int64)
-			for _, x := range longArray {
-				_, _ = e.w.Write([]byte{byte(x >> 56), byte(x >> 48), byte(x >> 40), byte(x >> 32), byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+			if err := e.encodeNameTag(fv, name); err != nil {
+				return fmt.Errorf("%v encoding %v in compound tag", err, name)
 			}
 		}
+
+		e.w.Write([]byte{tagEnd})
+
+	case reflect.Map:
+		typ := v.Type().Key()
+		if typ.Kind() != reflect.String {
+			return fmt.Errorf("cant encode map with %v keys", v.Kind())
+		}
+
+		iter := v.MapRange()
+		for iter.Next() {
+			k := iter.Key()
+			val := iter.Value()
+
+			if val.Kind() == reflect.Interface {
+				val = val.Elem()
+			}
+
+			if val.Kind() == reflect.Map || val.Kind() == reflect.Slice {
+				if val.IsNil() {
+					continue
+				}
+			}
+
+			if err := e.encodeNameTag(val, k.String()); err != nil {
+				return fmt.Errorf("%v encoding %v in compound tag", err, k.String())
+			}
+		}
+		e.w.Write([]byte{tagEnd})
 	}
 
 	return nil
 }
 
-func nbtId(v reflect.Value) byte {
+func (e *Encoder) encodeNameTag(v reflect.Value, name string) error {
+	_, _ = e.w.Write([]byte{nbtId(v.Type())})
+	e.writeString(name)
+	return e.encode(v)
+}
+
+func (e *Encoder) writeString(x string) {
+	e.write16(len(x))
+	_, _ = e.w.Write(*(*[]byte)(unsafe.Pointer(&x)))
+}
+
+func (e *Encoder) write16(x int) {
+	e.w.Write([]byte{byte(x >> 8), byte(x)})
+}
+
+func (e *Encoder) write32(x int) {
+	e.w.Write([]byte{byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+}
+
+func (e *Encoder) write64(x int64) {
+	e.w.Write([]byte{
+		byte(x >> 56), byte(x >> 48), byte(x >> 40), byte(x >> 32),
+		byte(x >> 24), byte(x >> 16), byte(x >> 8), byte(x)})
+}
+
+func nbtId(v reflect.Type) byte {
 	switch v.Kind() {
 
-	case reflect.Struct:
+	case reflect.Int8, reflect.Bool:
+		return tagByte
+
+	case reflect.Int16:
+		return tagShort
+
+	case reflect.Int, reflect.Int32:
+		return tagInt
+
+	case reflect.Int64:
+		return tagLong
+
+	case reflect.Float32:
+		return tagFloat
+
+	case reflect.Float64:
+		return tagDouble
+
+	case reflect.String:
+		return tagString
+
+	case reflect.Struct, reflect.Map:
 		return tagCompound
 
 	case reflect.Slice:
+		switch v.Elem().Kind() {
 
-		switch v.Type().Elem().Kind() {
+		default:
+			return tagList
+
+		case reflect.Int8:
+			return tagByteArray
 
 		case reflect.Int32:
 			return tagIntArray
@@ -112,5 +239,6 @@ func nbtId(v reflect.Value) byte {
 		}
 	}
 
-	return 0
+	fmt.Println(v.String())
+	panic("shouldnt happen")
 }

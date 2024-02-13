@@ -1,28 +1,31 @@
 package packet
 
-type SetSlot struct {
-	WindowID  byte
-	StateID   int32
-	Slot      int16
-	Present   bool
-	ItemId    int32
-	ItemCount byte
-	NBT       []byte
+import "github.com/aimjel/minecraft/protocol/encoding"
+
+type SetContainerSlot struct {
+	WindowID int8
+	StateID  int32
+	Slot     int16
+	Data     Slot
 }
 
-func (s *SetSlot) ID() int32 {
-	return 0x16
+func (s *SetContainerSlot) ID() int32 {
+	return 0x14
 }
 
-func (s *SetSlot) Encode(w Writer) error {
-	_ = w.Uint8(s.WindowID)
+func (s *SetContainerSlot) Decode(r *encoding.Reader) error {
+	return NotImplemented
+}
+
+func (s SetContainerSlot) Encode(w *encoding.Writer) error {
+	_ = w.Int8(s.WindowID)
 	_ = w.VarInt(s.StateID)
 	_ = w.Int16(s.Slot)
-	_ = w.Bool(s.Present)
-	if s.Present {
-		_ = w.VarInt(s.ItemId)
-		_ = w.Uint8(s.ItemCount)
-		return w.Nbt(s.NBT)
+	_ = w.Bool(s.Data.Present)
+	if s.Data.Present {
+		_ = w.VarInt(s.Data.Id)
+		_ = w.Int8(s.Data.Count)
+		return w.Nbt2(s.Data.Tag)
 	}
 
 	return nil

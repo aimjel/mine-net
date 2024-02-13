@@ -1,5 +1,7 @@
 package packet
 
+import "github.com/aimjel/minecraft/protocol/encoding"
+
 type SoundEffect struct {
 	SoundId       int32
 	SoundCategory int32
@@ -11,11 +13,11 @@ func (e *SoundEffect) ID() int32 {
 	return 0x5c
 }
 
-func (e *SoundEffect) Decode(r *Reader) error {
+func (e *SoundEffect) Decode(r *encoding.Reader) error {
 	return nil
 }
 
-func (e SoundEffect) Encode(w Writer) error {
+func (e SoundEffect) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(e.SoundId)
 	_ = w.VarInt(e.SoundCategory)
 	_ = w.Int32(e.X)

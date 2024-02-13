@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aimjel/minecraft/packet"
 	"image/png"
 	"math"
 	"os"
@@ -25,13 +26,14 @@ type Status struct {
 	s *status
 }
 
-func NewStatus(version Version, max int, desc string) *Status {
+func NewStatus(version Version, max int, desc string, enforcesSecureChat, previewsChat bool) *Status {
 	var s status
 	if version.Text == "" {
 		version.Text = versionName(version.Protocol)
 	}
 	s.Version.Name, s.Version.Protocol = version.Text, version.Protocol
 	s.Players.Max, s.Description = max, chat.NewMessage(desc)
+	s.EnforcesSecureChat, s.PreviewsChat = enforcesSecureChat, previewsChat
 
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -39,47 +41,71 @@ func NewStatus(version Version, max int, desc string) *Status {
 
 	st := &Status{enc: enc, buf: &buf, s: &s}
 
-	size := buf.Len() + 34 //34 for the favicon key and prepended info, including quotes and comma
-
-	b := bytes.NewBuffer(nil)
-	if err := st.loadIcon(b); err != nil {
+	if err := st.loadIcon(); err != nil {
 		return st
 	}
 
-	if size+b.Len() < math.MaxInt16 {
-		st.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b.Bytes())
-	}
-
-	buf.Reset()
-	enc.Encode(s)
 	return st
 }
 
-func (s *Status) loadIcon(buf *bytes.Buffer) error {
+func (s *Status) loadIcon() error {
 	f, err := os.Open("server-icon.png")
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, _ = f.Seek(0, 0)
 	m, err := png.Decode(f)
 	if err != nil {
 		return err
 	}
 
+	if b := m.Bounds(); b.Dy() != 64 || b.Dx() != 64 {
+		return fmt.Errorf("server-icon must be a 64x64")
+	}
+
 	var e png.Encoder
 	e.CompressionLevel = png.DefaultCompression
 
-	if err = e.Encode(buf, m); err != nil {
+	statusLen := s.buf.Len()
+	s.buf.Reset()
+
+	if err = e.Encode(s.buf, m); err != nil {
 		fmt.Printf("%v compressiong server icon", err)
 	}
 
-	return nil
+	prependedInfo := "\"favicon\": \"data:image/png;base64,\","
+	iconLen := len(prependedInfo) + base64.StdEncoding.EncodedLen(s.buf.Len())
+	if statusLen+iconLen > math.MaxInt16 {
+		return fmt.Errorf("server-icon file is too big")
+	}
+
+	s.s.Favicon = "data:image/png;base64," + base64.StdEncoding.EncodeToString(s.buf.Bytes())
+	s.buf.Reset()
+
+	return s.enc.Encode(s.s)
 }
 
 func (s *Status) json() []byte {
 	return s.buf.Bytes()
+}
+
+func (s *Status) handleStatus(c *Conn) error {
+	var rq packet.Request
+	if err := c.DecodePacket(&rq); err != nil {
+		return err
+	}
+
+	if err := c.SendPacket(&packet.Response{JSON: s.json()}); err != nil {
+		return fmt.Errorf("%v writing response packet", err)
+	}
+
+	var pg packet.Ping
+	if err := c.DecodePacket(&pg); err != nil {
+		return fmt.Errorf("%v decoding ping packet", err)
+	}
+
+	return c.SendPacket(&packet.Pong{Payload: pg.Payload})
 }
 
 func versionName(protocol int) string {
@@ -110,6 +136,8 @@ type status struct {
 			Id   string `json:"id"`
 		} `json:"sample"`
 	} `json:"players"`
-	Description chat.Message `json:"description"`
-	Favicon     string       `json:"favicon,omitempty"`
+	Description        chat.Message `json:"description"`
+	Favicon            string       `json:"favicon,omitempty"`
+	EnforcesSecureChat bool         `json:"enforcesSecureChat"`
+	PreviewsChat       bool         `json:"previewsChat"`
 }

@@ -1,4 +1,4 @@
-package packet
+package encoding
 
 import (
 	"bytes"
@@ -11,8 +11,8 @@ type Writer struct {
 	buf *bytes.Buffer
 }
 
-func NewWriter(b *bytes.Buffer) Writer {
-	return Writer{buf: b}
+func NewWriter(b *bytes.Buffer) *Writer {
+	return &Writer{buf: b}
 }
 
 func (w *Writer) Bool(x bool) error {
@@ -107,6 +107,11 @@ func (w *Writer) ByteArray(x []byte) error {
 	return err
 }
 
+func (w *Writer) FixedByteArray(x []byte) error {
+	_, err := w.buf.Write(x)
+	return err
+}
+
 func (w *Writer) VarIntArray(x []int32) error {
 	if err := w.VarInt(int32(len(x))); err != nil {
 		return fmt.Errorf("%v wrintng varint32 array length", err)
@@ -139,11 +144,6 @@ func (w *Writer) Int64Array(x []int64) error {
 
 func (w *Writer) UUID(x [16]byte) error {
 	_, err := w.buf.Write(x[:])
-	return err
-}
-
-func (w *Writer) Nbt(x []byte) error {
-	_, err := w.buf.Write(x)
 	return err
 }
 

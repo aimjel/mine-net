@@ -1,12 +1,13 @@
 package packet
 
 import (
-	"fmt"
+	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minecraft/protocol/types"
 	"unsafe"
 )
 
 type DeclareCommands struct {
-	Nodes []Node
+	Nodes []types.CommandNode
 
 	RootIndex int32
 }
@@ -15,13 +16,13 @@ func (d *DeclareCommands) ID() int32 {
 	return 0x10
 }
 
-func (d *DeclareCommands) Decode(r *Reader) error {
+func (d *DeclareCommands) Decode(r *encoding.Reader) error {
 	var length int32
 	if err := r.VarInt(&length); err != nil {
 		return err
 	}
 
-	d.Nodes = make([]Node, length)
+	d.Nodes = make([]types.CommandNode, length)
 	for i := int32(0); i < length; i++ {
 		n := &d.Nodes[i]
 
@@ -104,6 +105,8 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 
 			case 29: //score holder
 				_ = r.Uint8(&n.Properties.Flags)
+			case 41, 42, 43, 44: // some identifier
+				_ = r.String(&n.Properties.Identifier)
 			}
 		}
 
@@ -115,7 +118,7 @@ func (d *DeclareCommands) Decode(r *Reader) error {
 	return r.VarInt(&d.RootIndex)
 }
 
-func (d *DeclareCommands) Encode(w Writer) error {
+func (d *DeclareCommands) Encode(w *encoding.Writer) error {
 	_ = w.VarInt(int32(len(d.Nodes)))
 	for _, n := range d.Nodes {
 		_ = w.Uint8(n.Flags)
@@ -160,7 +163,6 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 			case 3: //integer
 				_ = w.Uint8(n.Properties.Flags)
-				fmt.Printf("brigadier:integer flags %08b\n", n.Properties.Flags)
 				if n.Properties.Flags&0x01 == 1 {
 					_ = w.Int32(*(*int32)(unsafe.Pointer(&n.Properties.Min)))
 				}
@@ -185,6 +187,8 @@ func (d *DeclareCommands) Encode(w Writer) error {
 
 			case 29: //score holder
 				_ = w.Uint8(n.Properties.Flags)
+			case 41, 42, 43, 44: // some identifier
+				_ = w.String(n.Properties.Identifier)
 			}
 		}
 
@@ -194,18 +198,4 @@ func (d *DeclareCommands) Encode(w Writer) error {
 	}
 
 	return w.VarInt(d.RootIndex)
-}
-
-type Node struct {
-	Flags        uint8
-	Children     []int32
-	RedirectNode int32
-	Name         string
-	ParserID     int32
-	Properties   struct {
-		Flags      uint8
-		Min, Max   uint64 //min and max stores the bits of the actual data type
-		Identifier string
-	}
-	SuggestionsType string
 }
