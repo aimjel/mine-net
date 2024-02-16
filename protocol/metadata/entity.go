@@ -25,23 +25,23 @@ const (
 	digging
 )
 
-type entityData = uint8
+type EntityData = uint8
 
 const (
-	onFire entityData = 1 << iota
-	isCrouching
+	OnFire EntityData = 1 << iota
+	IsCrouching
 	unused
-	isSprinting
-	isSwimming
-	isInvisible
-	glowingEffect
-	flyingWithElytra
+	IsSprinting
+	IsSwimming
+	IsInvisible
+	GlowingEffect
+	FlyingWithElytra
 )
 
 type entityIndex uint8
 
 const (
-	data entityIndex = 1 << iota
+	entityData entityIndex = 1 << iota
 	airTicks
 	customName
 	customNameVisible
@@ -53,7 +53,7 @@ const (
 
 // Entity implements the base entity metadata values
 type Entity struct {
-	data              entityData
+	data              EntityData
 	airTicks          int32
 	customName        *chat.Message
 	customNameVisible bool
@@ -66,8 +66,8 @@ type Entity struct {
 }
 
 func (e Entity) Encode(w *encoding.Writer) error {
-	if e.indexUsed&data != 0 {
-		_ = w.Uint8(bitmaskToIndex(data))
+	if e.indexUsed&entityData != 0 {
+		_ = w.Uint8(bitmaskToIndex(entityData))
 		_ = encode(w, e.data)
 	}
 	if e.indexUsed&airTicks != 0 {
@@ -107,25 +107,8 @@ func (e Entity) Decode(r *encoding.Reader) error {
 	panic("implement me")
 }
 
-func (e Entity) Crouch(v bool) Entity {
-	if v {
-		e.data |= isCrouching
-		e.pose = sneaking
-	} else {
-		//don't need to set data
-		e.pose = standing
-	}
-	e.indexUsed |= poseType | data
-
-	return e
-}
-
-func (e Entity) Sprinting(v bool) Entity {
-	if v {
-		e.data |= isSprinting
-	}
-
-	e.indexUsed |= data
-
+func (e Entity) Data(v EntityData) Entity {
+	e.data = v
+	e.indexUsed |= entityData
 	return e
 }
