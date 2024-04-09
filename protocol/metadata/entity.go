@@ -53,7 +53,7 @@ const (
 
 // Entity implements the base entity metadata values
 type Entity struct {
-	Data              EntityData
+	Data              EntityDataType
 	AirTicks          int32
 	CustomName        *chat.Message
 	CustomNameVisible bool
