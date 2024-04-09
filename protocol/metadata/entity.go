@@ -25,10 +25,10 @@ const (
 	Digging
 )
 
-type EntityData = uint8
+type EntityDataType = uint8
 
 const (
-	OnFire EntityData = 1 << iota
+	OnFire EntityDataType = 1 << iota
 	IsCrouching
 	unused
 	IsSprinting
