@@ -41,62 +41,62 @@ const (
 type entityIndex uint8
 
 const (
-	entityData entityIndex = 1 << iota
-	airTicks
-	customName
-	customNameVisible
-	silent
-	noGravity
-	poseType
-	frozenTicks
+	EntityData entityIndex = 1 << iota
+	AirTicks
+	CustomName
+	CustomNameVisible
+	Silent
+	NoGravity
+	PoseType
+	FrozenTicks
 )
 
 // Entity implements the base entity metadata values
 type Entity struct {
-	data              EntityData
-	airTicks          int32
-	customName        *chat.Message
-	customNameVisible bool
-	silent            bool
-	noGravity         bool
-	pose              pose
-	frozenTicks       int32
+	Data              EntityData
+	AirTicks          int32
+	CustomName        *chat.Message
+	CustomNameVisible bool
+	Silent            bool
+	NoGravity         bool
+	Pose              pose
+	FrozenTicks       int32
 
-	indexUsed entityIndex
+	IndexUsed entityIndex
 }
 
 func (e Entity) Encode(w *encoding.Writer) error {
-	if e.indexUsed&entityData != 0 {
-		_ = w.Uint8(bitmaskToIndex(entityData))
-		_ = encode(w, e.data)
+	if e.IndexUsed&EntityData != 0 {
+		_ = w.Uint8(bitmaskToIndex(EntityData))
+		_ = encode(w, e.Data)
 	}
-	if e.indexUsed&airTicks != 0 {
-		_ = w.Uint8(bitmaskToIndex(airTicks))
-		_ = encode(w, e.airTicks)
+	if e.IndexUsed&AirTicks != 0 {
+		_ = w.Uint8(bitmaskToIndex(AirTicks))
+		_ = encode(w, e.AirTicks)
 	}
-	if e.indexUsed&customName != 0 {
-		_ = w.Uint8(bitmaskToIndex(customName))
-		_ = encode(w, e.customName)
+	if e.IndexUsed&CustomName != 0 {
+		_ = w.Uint8(bitmaskToIndex(CustomName))
+		_ = encode(w, e.CustomName)
 	}
-	if e.indexUsed&customNameVisible != 0 {
-		_ = w.Uint8(bitmaskToIndex(customNameVisible))
-		_ = encode(w, e.customNameVisible)
+	if e.IndexUsed&CustomNameVisible != 0 {
+		_ = w.Uint8(bitmaskToIndex(CustomNameVisible))
+		_ = encode(w, e.CustomNameVisible)
 	}
-	if e.indexUsed&silent != 0 {
-		_ = w.Uint8(bitmaskToIndex(silent))
-		_ = encode(w, e.silent)
+	if e.IndexUsed&Silent != 0 {
+		_ = w.Uint8(bitmaskToIndex(Silent))
+		_ = encode(w, e.Silent)
 	}
-	if e.indexUsed&noGravity != 0 {
-		_ = w.Uint8(bitmaskToIndex(noGravity))
-		_ = encode(w, e.noGravity)
+	if e.IndexUsed&NoGravity != 0 {
+		_ = w.Uint8(bitmaskToIndex(NoGravity))
+		_ = encode(w, e.NoGravity)
 	}
-	if e.indexUsed&poseType != 0 {
-		_ = w.Uint8(bitmaskToIndex(poseType))
-		_ = encode(w, e.pose)
+	if e.indexUsed&PoseType != 0 {
+		_ = w.Uint8(bitmaskToIndex(PoseType))
+		_ = encode(w, e.Pose)
 	}
-	if e.indexUsed&frozenTicks != 0 {
-		_ = w.Uint8(bitmaskToIndex(poseType))
-		_ = encode(w, e.frozenTicks)
+	if e.IndexUsed&FrozenTicks != 0 {
+		_ = w.Uint8(bitmaskToIndex(FrozenTicks))
+		_ = encode(w, e.FrozenTicks)
 	}
 
 	return nil
@@ -105,10 +105,4 @@ func (e Entity) Encode(w *encoding.Writer) error {
 func (e Entity) Decode(r *encoding.Reader) error {
 	//TODO implement me
 	panic("implement me")
-}
-
-func (e Entity) Data(v EntityData) Entity {
-	e.data = v
-	e.indexUsed |= entityData
-	return e
 }
