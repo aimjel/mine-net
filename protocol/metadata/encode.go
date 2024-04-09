@@ -28,7 +28,7 @@ func encode(w *encoding.Writer, t any) error {
 		_ = w.Uint8(8)
 		return w.Bool(v)
 
-	case pose:
+	case Pose:
 		_ = w.Uint8(20)
 		return w.VarInt(v)
 
