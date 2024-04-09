@@ -5,24 +5,24 @@ import (
 	"github.com/aimjel/minecraft/protocol/encoding"
 )
 
-type pose uint8
+type pose = int32
 
 const (
-	standing pose = iota
-	fallFlying
-	sleeping
-	swimming
-	spinAttack
-	sneaking
-	longJumping
-	dying
-	croaking
-	usingTongue
-	sitting
-	roaring
-	sniffing
-	emerging
-	digging
+	Standing pose = iota
+	FallFlying
+	Sleeping
+	Swimming
+	SpinAttack
+	Sneaking
+	LongJumping
+	Dying
+	Croaking
+	UsingTongue
+	Sitting
+	Roaring
+	Sniffing
+	Emerging
+	Digging
 )
 
 type EntityData = uint8
