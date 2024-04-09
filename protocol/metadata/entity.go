@@ -5,10 +5,10 @@ import (
 	"github.com/aimjel/minecraft/protocol/encoding"
 )
 
-type pose int32
+type Pose int32
 
 const (
-	Standing pose = iota
+	Standing Pose = iota
 	FallFlying
 	Sleeping
 	Swimming
@@ -59,7 +59,7 @@ type Entity struct {
 	CustomNameVisible bool
 	Silent            bool
 	NoGravity         bool
-	Pose              pose
+	Pose              Pose
 	FrozenTicks       int32
 
 	IndexUsed entityIndex
