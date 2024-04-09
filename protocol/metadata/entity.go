@@ -5,7 +5,7 @@ import (
 	"github.com/aimjel/minecraft/protocol/encoding"
 )
 
-type pose = int32
+type pose int32
 
 const (
 	Standing pose = iota
@@ -90,7 +90,7 @@ func (e Entity) Encode(w *encoding.Writer) error {
 		_ = w.Uint8(bitmaskToIndex(NoGravity))
 		_ = encode(w, e.NoGravity)
 	}
-	if e.indexUsed&PoseType != 0 {
+	if e.IndexUsed&PoseType != 0 {
 		_ = w.Uint8(bitmaskToIndex(PoseType))
 		_ = encode(w, e.Pose)
 	}
