@@ -30,7 +30,7 @@ func encode(w *encoding.Writer, t any) error {
 
 	case pose:
 		_ = w.Uint8(20)
-		return w.VarInt(int32(v))
+		return w.VarInt(v)
 
 	default:
 		panic("unknown metadata type")
