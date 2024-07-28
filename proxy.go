@@ -9,22 +9,37 @@ import (
 )
 
 type ProxyConfig struct {
-
-	// Status displayed for the proxy server.
-	// If value is nil, the proxy server will use the target servers status.
-	Status *Status
-
 	// OnReceive called when a packet is received from the client or server.
 	// Returning false will drop the packet.
-	OnReceive func(conn *ProxyConn, pk packet.Packet, fromServer bool) bool
+	OnReceive func(conn *Conn, pk packet.Packet, fromServer bool, state int) bool
 
-	canJoin bool
+	//ErrCh receives errors from the client and server
+	ErrCh chan ProxyError
 }
 
-func (cfg *ProxyConfig) Listen(addr, targetAddr string) error {
+type ProxyListener struct {
+	cfg *ProxyConfig
+
+	ln *net.TCPListener
+}
+
+type ProxyError struct {
+	//State is the protocol state the error occurred in
+	State int
+
+	Addr net.Addr
+
+	Err error
+}
+
+func (p ProxyError) Error() string {
+	return fmt.Sprintf("[%v] %v: %v", p.State, p.Addr, p.Err)
+}
+
+func (cfg *ProxyConfig) Listen(addr, targetAddr string) (*ProxyListener, error) {
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	go func() {
@@ -32,8 +47,8 @@ func (cfg *ProxyConfig) Listen(addr, targetAddr string) error {
 			c, err := ln.Accept()
 			if err != nil {
 				fmt.Println(err)
-
 				if errors.Is(err, net.ErrClosed) {
+					fmt.Println(err)
 					return
 				}
 			}
@@ -42,114 +57,71 @@ func (cfg *ProxyConfig) Listen(addr, targetAddr string) error {
 		}
 	}()
 
-	return nil
+	return &ProxyListener{cfg: cfg, ln: ln.(*net.TCPListener)}, nil
 }
 
-type ProxyConn struct {
-	// dialConn is connected to the target server.
-	// Packets written by the target server
-	// are read from this connection.
-	dialConn *Conn
-
-	// conn is the original server which originated
-	//from the proxy server. Also known as the client.
-	conn *Conn
-
-	targetAddr string
+func (l *ProxyListener) Close() error {
+	return l.ln.Close()
 }
 
-func (pc *ProxyConn) SendServerPacket(pk packet.Packet) error {
-	return pc.dialConn.SendPacket(pk)
-}
-
-func (pc *ProxyConn) SendClientPacket(pk packet.Packet) error {
-	return pc.conn.SendPacket(pk)
-}
-
-func (pc *ProxyConn) LocalAddr() net.Addr {
-	return pc.conn.RemoteAddr()
-}
-
-func (pc *ProxyConn) RemoteAddr() net.Addr {
-	return pc.dialConn.RemoteAddr()
-}
-
-func (cfg *ProxyConfig) handleConn(c *Conn, targetAddr string) {
-	proxyC := &ProxyConn{
-		conn:       c,
-		targetAddr: targetAddr,
-	}
-
-	cfg.start(proxyC)
-}
-
-func (cfg *ProxyConfig) start(pc *ProxyConn) {
+func (cfg *ProxyConfig) handleConn(client *Conn, targetAddr string) {
 	var hs packet.Handshake
-	if err := pc.conn.DecodePacket(&hs); err != nil {
-		fmt.Println("decode hs", err)
+	if err := client.DecodePacket(&hs); err != nil {
+		cfg.ErrCh <- ProxyError{State: 0, Addr: client.RemoteAddr(), Err: err}
+		client.Close(nil)
+		return
+	}
+	if hs.NextState != 1 && hs.NextState != 2 && hs.ProtocolVersion != 763 {
+		client.Close(nil)
 		return
 	}
 
-	//addr, port, _ := net.SplitHostPort(pc.targetAddr)
-	//portNum, _ := strconv.Atoi(port)
+	dialC, err := net.Dial("tcp4", targetAddr)
+	if err != nil {
+		cfg.ErrCh <- ProxyError{State: 0, Addr: client.RemoteAddr(), Err: err}
+		client.Close(nil)
+		return
+	}
 
-	//hs.ServerAddress = addr
-	//hs.ServerPort = uint16(portNum)
+	serverConn := newConn(dialC.(*net.TCPConn))
+	if err = serverConn.SendPacket(&hs); err != nil {
+		cfg.ErrCh <- ProxyError{State: 0, Addr: serverConn.RemoteAddr(), Err: err}
+		client.Close(nil)
+		return
+	}
 
 	switch hs.NextState {
 
-	//status
 	case 0x01:
-		if cfg.Status != nil {
-			if err := cfg.Status.handleStatus(pc.conn); err != nil {
-				err = fmt.Errorf("%v handling status state", err)
-			}
-			pc.conn.Close(nil)
-			return
-		}
-		dialC, err := net.Dial("tcp4", pc.targetAddr)
-		if err != nil {
-			fmt.Println("dial", err)
-			return
-		}
-
-		pc.dialConn = newConn(dialC.(*net.TCPConn))
-		_ = pc.dialConn.SendPacket(&hs)
-		cfg.proxy(pc)
-		pc.conn.Close(nil)
-		pc.dialConn.Close(nil)
+		cfg.proxy(client, serverConn)
+		client.Close(nil)
+		serverConn.Close(nil)
 		return
 
 	case 0x02:
-		dialC, err := net.Dial("tcp4", pc.targetAddr)
-		if err != nil {
-			fmt.Println(err)
+		if err = cfg.handleLogin(client, serverConn); err != nil {
+			cfg.ErrCh <- err.(ProxyError)
+			client.Close(nil)
 			return
 		}
 
-		pc.dialConn = newConn(dialC.(*net.TCPConn))
-		_ = pc.dialConn.SendPacket(&hs)
-
-		if err = cfg.handleLogin(pc); err != nil {
-			fmt.Printf("%v trying to login", err)
-			return
-		}
-
-		cfg.proxy(pc)
+		cfg.proxy(client, serverConn)
 	}
 }
 
-func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
+func (cfg *ProxyConfig) handleLogin(client, serverConn *Conn) error {
 	var ls packet.LoginStart
-	if err := pc.conn.DecodePacket(&ls); err != nil {
-		return err
+	if err := client.DecodePacket(&ls); err != nil {
+		return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
 	}
-	_ = pc.dialConn.SendPacket(&ls)
+	if err := serverConn.SendPacket(&ls); err != nil {
+		return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
+	}
 
 	for {
-		pack, err := pc.dialConn.ReadPacket()
+		pack, err := serverConn.ReadPacket()
 		if err != nil {
-			return err
+			return ProxyError{State: 2, Addr: serverConn.RemoteAddr(), Err: err}
 		}
 
 		pk := pack.(packet.Unknown)
@@ -157,76 +129,77 @@ func (cfg *ProxyConfig) handleLogin(pc *ProxyConn) error {
 
 		//encryption request
 		case 0x01:
-			pc.dialConn.Close(nil)
-			pc.conn.Close(nil)
-			return fmt.Errorf("online mode is not supported")
+			serverConn.Close(nil)
+			client.Close(nil)
+			return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: fmt.Errorf("online mode is not supported")}
 
 		case 0x02:
 			var lgSuc packet.LoginSuccess
 			if err = lgSuc.Decode(encoding.NewReader(pk.Payload)); err != nil {
-				return fmt.Errorf("%v decoding login success packet", err)
+				return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
 			}
 
-			pc.dialConn.name = lgSuc.Name
-			pc.dialConn.uuid = lgSuc.UUID
-			pc.dialConn.properties = lgSuc.Properties
+			serverConn.name, client.name = lgSuc.Name, lgSuc.Name
+			serverConn.uuid, client.uuid = lgSuc.UUID, lgSuc.UUID
+			serverConn.properties, client.properties = lgSuc.Properties, client.properties
 
-			pc.conn.name = lgSuc.Name
-			pc.conn.uuid = lgSuc.UUID
-			pc.conn.properties = lgSuc.Properties
-
-			pc.conn.SendPacket(&lgSuc)
+			if err = client.SendPacket(&lgSuc); err != nil {
+				return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
+			}
 			return nil
 
 		case 0x03:
 			var com packet.SetCompression
 			if err = com.Decode(encoding.NewReader(pk.Payload)); err != nil {
-				return fmt.Errorf("%v decoding compression threshold packet", err)
+				return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
 			}
-			pc.conn.SendPacket(&com)
+			if err = client.SendPacket(&com); err != nil {
+				return ProxyError{State: 2, Addr: client.RemoteAddr(), Err: err}
+			}
 
-			pc.dialConn.enableCompression(com.Threshold)
-			pc.conn.enableCompression(com.Threshold)
+			serverConn.enableCompression(com.Threshold)
+			client.enableCompression(com.Threshold)
 		}
 	}
 }
 
-func (cfg *ProxyConfig) proxy(pc *ProxyConn) {
-	pc.conn.Pool = ServerBoundPool{}
+func (cfg *ProxyConfig) proxy(client, serverConn *Conn) {
+	go func(srv, client *Conn) {
 
-	go func() {
+		//reads from the server and forwards to the client
 		for {
-			pk, err := pc.dialConn.ReadPacket()
+			pk, err := srv.ReadPacket()
 			if err != nil {
 				return
 			}
 
 			if cfg.OnReceive != nil {
-				if !cfg.OnReceive(pc, pk, true) {
+				if !cfg.OnReceive(srv, pk, true, 3) {
 					continue
 				}
 			}
 
-			if err = pc.conn.SendPacket(pk); err != nil {
+			if err = client.SendPacket(pk); err != nil {
 				return
 			}
 
 		}
-	}()
+	}(serverConn, client)
 
+	//reads from the client and forwards to the target server
 	for {
-		pk, err := pc.conn.ReadPacket()
+		pk, err := client.ReadPacket()
 		if err != nil {
 			return
 		}
 
 		if cfg.OnReceive != nil {
-			if !cfg.OnReceive(pc, pk, false) {
+			if !cfg.OnReceive(client, pk, false, 3) {
 				continue
 			}
 		}
 
-		if err = pc.dialConn.SendPacket(pk); err != nil {
+		if err = serverConn.SendPacket(pk); err != nil {
 			return
 		}
 	}
