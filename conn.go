@@ -143,7 +143,7 @@ func (c *Conn) WritePacket(pk packet.Packet) error {
 
 func (c *Conn) writePacket(pk packet.Packet) error {
 	start := c.buf.Len() //records the start of the packet data
-	pw := encoding.NewWriter(c.buf)
+	pw := encoding.NewWriter(c.buf, c.protoVer >= 764)
 
 	//ignore errors since writing to a bytes.Buffer object
 	//always returns nil
