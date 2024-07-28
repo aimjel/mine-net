@@ -21,7 +21,6 @@ import (
 )
 
 type ListenConfig struct {
-
 	// Status handles the information showed to the client on the server list
 	// which includes description, favicon, online/max players and protocol version and name
 	Status *Status
@@ -35,21 +34,16 @@ type ListenConfig struct {
 	// 0 compresses everything
 	CompressionThreshold int32
 
-	Messages *Messages
+	// If Protocol is not nil the returned boolean determines if the server
+	// should proceed with logging in. If the returned value is bool the
+	// string value is used as the disconnect reason.
+	Protocol func(v int32) (bool, string)
 
 	//todo add more config fields
 }
 
 func (lc *ListenConfig) Listen(address string) (*Listener, error) {
-	if lc.Messages == nil {
-		lc.Messages = &DefaultMessages
-	}
-	addr, err := net.ResolveTCPAddr("tcp4", address)
-	if err != nil {
-		return nil, err
-	}
-
-	ln, err := net.ListenTCP("tcp4", addr)
+	ln, err := net.Listen("tcp4", address)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +58,7 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 
 	l := &Listener{
 		cfg:   *lc,
-		tcpLn: ln,
+		tcpLn: ln.(*net.TCPListener),
 		key:   key,
 
 		await: make(chan *Conn, 4),
@@ -118,26 +112,24 @@ func (l *Listener) handle(conn *net.TCPConn) {
 		}
 
 	case 0x02:
-		if pk.ProtocolVersion != int32(l.cfg.Status.s.Version.Protocol) {
-			reason := l.cfg.Messages.ProtocolTooNew
-			if pk.ProtocolVersion < int32(l.cfg.Status.s.Version.Protocol) {
-				reason = l.cfg.Messages.ProtocolTooOld
+		if l.cfg.Protocol != nil {
+			cn, s := l.cfg.Protocol(pk.ProtocolVersion)
+			if !cn {
+				c.SendPacket(&packet.DisconnectLogin{Reason: chat.NewMessage(s)})
+				break
 			}
-
-			err = c.SendPacket(&packet.DisconnectLogin{
-				Reason: chat.NewMessage(reason),
-			})
-			break
 		}
 
 		if err = l.handleLogin(c); err == nil {
-			if x := l.cfg.CompressionThreshold; x >= 0 {
-				if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
-					err = fmt.Errorf("%v sending set compression", err)
-					break
-				}
+			if pk.ProtocolVersion >= 47 {
+				if x := l.cfg.CompressionThreshold; x >= 0 {
+					if err = c.SendPacket(&packet.SetCompression{Threshold: x}); err != nil {
+						err = fmt.Errorf("%v sending set compression", err)
+						break
+					}
 
-				c.enableCompression(x)
+					c.enableCompression(x)
+				}
 			}
 
 			if err = c.SendPacket(&packet.LoginSuccess{
@@ -149,7 +141,6 @@ func (l *Listener) handle(conn *net.TCPConn) {
 				break
 			}
 
-			c.Pool = &ServerBoundPool{}
 			l.await <- c
 			return //return so it doesn't close the connection
 		}
@@ -236,7 +227,7 @@ func (l *Listener) handleLogin(c *Conn) error {
 	c.name, c.properties = data.Name, data.Properties
 
 	if n := copy(c.uuid[:], uuid); n != 16 {
-		c.SendPacket(&packet.DisconnectLogin{Reason: chat.NewMessage(l.cfg.Messages.OnlineMode)})
+		c.SendPacket(&packet.DisconnectLogin{Reason: chat.NewMessage(`¯\_(ツ)_/¯`)})
 		return fmt.Errorf("offline player on online server")
 	}
 	return nil
