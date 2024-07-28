@@ -17,7 +17,7 @@ type Encoder struct {
 func NewEncoder(w io.Writer, netEncoding bool) *Encoder {
 	if netEncoding {
 		return &Encoder{w: w, addRoot: []byte{10}}
-	}
+  }
 
 	return &Encoder{w: w, addRoot: []byte{10, 0, 0}}
 }
