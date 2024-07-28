@@ -60,3 +60,25 @@ func (s LoginSuccess) Encode(w *encoding.Writer) error {
 	}
 	return nil
 }
+
+type LoginSuccess121 struct {
+	*LoginSuccess
+
+	StrictErrorHandling bool
+}
+
+func (l *LoginSuccess121) Encode(w *encoding.Writer) error {
+	if err := l.LoginSuccess.Encode(w); err != nil {
+		return err
+	}
+
+	return w.Bool(l.StrictErrorHandling)
+}
+
+func (l *LoginSuccess121) Decode(r *encoding.Reader) error {
+	if err := l.LoginSuccess.Decode(r); err != nil {
+		return err
+	}
+
+	return r.Bool(&l.StrictErrorHandling)
+}

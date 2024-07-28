@@ -32,6 +32,8 @@ type Conn struct {
 	uuid [16]byte
 
 	properties []types.Property
+
+	protoVer int32
 }
 
 func (c *Conn) Name() string {

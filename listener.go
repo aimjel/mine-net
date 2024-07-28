@@ -120,6 +120,8 @@ func (l *Listener) handle(conn *net.TCPConn) {
 			}
 		}
 
+		c.protoVer = pk.ProtocolVersion
+
 		if err = l.handleLogin(c); err == nil {
 			if pk.ProtocolVersion >= 47 {
 				if x := l.cfg.CompressionThreshold; x >= 0 {
@@ -132,11 +134,19 @@ func (l *Listener) handle(conn *net.TCPConn) {
 				}
 			}
 
-			if err = c.SendPacket(&packet.LoginSuccess{
+			var lgsc packet.Packet = &packet.LoginSuccess{
 				Name:       c.name,
 				UUID:       c.uuid,
 				Properties: c.properties,
-			}); err != nil {
+			}
+
+			if c.protoVer == 767 {
+				lgsc = &packet.LoginSuccess121{
+					LoginSuccess:        lgsc.(*packet.LoginSuccess),
+					StrictErrorHandling: true,
+				}
+			}
+			if err = c.SendPacket(lgsc); err != nil {
 				err = fmt.Errorf("%v sending login success", err)
 				break
 			}
@@ -171,7 +181,11 @@ func (l *Listener) handleLogin(c *Conn) error {
 	token := make([]byte, 8)
 	_, _ = rand.Read(token)
 
-	if err = c.SendPacket(&packet.EncryptionRequest{PublicKey: key, VerifyToken: token}); err != nil {
+	var encReq packet.Packet = &packet.EncryptionRequest{PublicKey: key, VerifyToken: token}
+	if c.protoVer == 767 {
+		encReq = &packet.EncryptionRequest121{EncryptionRequest: &packet.EncryptionRequest{PublicKey: key, VerifyToken: token}, ShouldAuthenticate: true}
+	}
+	if err = c.SendPacket(encReq); err != nil {
 		return err
 	}
 
