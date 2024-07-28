@@ -9,10 +9,12 @@ import (
 
 type Writer struct {
 	buf *bytes.Buffer
+
+	netEncoding bool
 }
 
-func NewWriter(b *bytes.Buffer) *Writer {
-	return &Writer{buf: b}
+func NewWriter(b *bytes.Buffer, netEncoding bool) *Writer {
+	return &Writer{buf: b, netEncoding: netEncoding}
 }
 
 func (w *Writer) Bool(x bool) error {
@@ -148,5 +150,5 @@ func (w *Writer) UUID(x [16]byte) error {
 }
 
 func (w *Writer) Nbt2(x any) error {
-	return nbt.NewEncoder(w.buf).Encode(x)
+	return nbt.NewEncoder(w.buf, w.netEncoding).Encode(x)
 }
