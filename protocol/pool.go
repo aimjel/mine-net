@@ -39,7 +39,7 @@ var (
 
 func GetBuffer(size int) *bytes.Buffer {
 	for i, v := range sizes {
-		if size < v {
+		if size <= v {
 			return buffers[i].Get().(*bytes.Buffer)
 		}
 	}
@@ -51,7 +51,7 @@ func PutBuffer(b *bytes.Buffer) {
 	b.Reset()
 
 	for i, v := range sizes {
-		if b.Cap() < v {
+		if b.Cap() <= v {
 			buffers[i].Put(b)
 			return
 		}
