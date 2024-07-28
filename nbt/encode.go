@@ -10,17 +10,22 @@ import (
 
 type Encoder struct {
 	w io.Writer
+
+	addRoot []byte
 }
 
-func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{w: w}
+func NewEncoder(w io.Writer, netEncoding bool) *Encoder {
+	if netEncoding {
+		return &Encoder{w: w, addRoot: []byte{10, 0, 0}}
+	}
+
+	return &Encoder{w: w, addRoot: []byte{10}}
 }
 
 func (e *Encoder) Encode(v any) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Struct || rv.Kind() == reflect.Map {
-		//writes the nameless compound
-		if _, err := e.w.Write([]byte{10, 0, 0}); err != nil {
+		if _, err := e.w.Write(e.addRoot); err != nil {
 			return err
 		}
 	}
