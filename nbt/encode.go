@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"strings"
 	"unsafe"
 )
 
@@ -17,7 +18,7 @@ type Encoder struct {
 func NewEncoder(w io.Writer, netEncoding bool) *Encoder {
 	if netEncoding {
 		return &Encoder{w: w, addRoot: []byte{10}}
-  }
+	}
 
 	return &Encoder{w: w, addRoot: []byte{10, 0, 0}}
 }
@@ -121,21 +122,31 @@ func (e *Encoder) encode(v reflect.Value) error {
 				continue
 			}
 
-			name, ok := fieldType.Tag.Lookup("nbt")
-			if !ok {
-				name = fieldType.Name
-			}
-
 			fv := v.Field(i)
 			if fv.Kind() == reflect.Interface {
 				//extracts the value hiding behind the interface
 				fv = v.Elem()
 			}
-			if fv.Kind() == reflect.Map || fv.Kind() == reflect.Slice {
+
+			var omitempty bool
+			name, ok := fieldType.Tag.Lookup("nbt")
+			if !ok {
+				name = fieldType.Name
+			}
+			if i := strings.Index(name, ",omitempty"); i != -1 {
+				name = name[:i]
+				omitempty = true
+			}
+
+			if omitempty && fv.IsZero() {
+				continue
+			}
+
+			/*if fv.Kind() == reflect.Map || fv.Kind() == reflect.Slice {
 				if fv.IsNil() {
 					continue
 				}
-			}
+			}*/ // dont think this is good ha und ha
 
 			if err := e.encodeNameTag(fv, name); err != nil {
 				return fmt.Errorf("%v encoding %v in compound tag", err, name)
