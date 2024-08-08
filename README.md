@@ -1,8 +1,8 @@
 # Minecraft Protocol Library for Go
 
 Efficient Minecraft protocol integration in Go. 
-Seamlessly send, receive, and manipulate packets with its built-in connection class. 
-The integrated listener effortlessly manages status and login states, complete with encryption for secure communication and compression for enhanced performance.
+Send, receive, and manipulate packets with its built-in connection class. 
+TCP listener manages status and login states, complete with full encryption and compression support.
 
 ## Installation
 
