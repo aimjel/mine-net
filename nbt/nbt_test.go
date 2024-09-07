@@ -98,6 +98,7 @@ func TestUnmarshalBigTest(t *testing.T) {
 
 func BenchmarkUnmarshalChunk(b *testing.B) {
 	var c chunk
+
 	for i := 0; i < b.N; i++ {
 		_ = Unmarshal(chunkData, &c)
 	}
@@ -122,6 +123,7 @@ func BenchmarkDecoder_DecodeChunk(b *testing.B) {
 
 func BenchmarkUnmarshalBigTest(b *testing.B) {
 	var bgTest bigTest
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = Unmarshal(bigTestData, &bgTest)
 	}
@@ -145,7 +147,7 @@ func TestEncoder(t *testing.T) {
 	_ = Unmarshal(chunkData, &ck)
 
 	var buf bytes.Buffer
-	if err := NewEncoder(&buf).Encode(ck); err != nil {
+	if err := NewEncoder(&buf, false).Encode(ck); err != nil {
 		t.Fatal(err)
 	}
 
@@ -160,7 +162,7 @@ func BenchmarkEncoder(b *testing.B) {
 	_ = Unmarshal(chunkData, &c)
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(chunkData)))
-	enc := NewEncoder(buf)
+	enc := NewEncoder(buf, false)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = enc.Encode(c)

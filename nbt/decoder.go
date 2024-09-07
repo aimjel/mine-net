@@ -16,14 +16,11 @@ func Unmarshal(b []byte, v any) error {
 }
 
 type Decoder struct {
-	rd io.Reader
-
 	dec *decoder
 }
 
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		rd:  r,
 		dec: newDecoder(r),
 	}
 }
@@ -118,7 +115,7 @@ func (d *Decoder) unmarshal(v reflect.Value, id byte) error {
 		default:
 			return fmt.Errorf("nbt: cannot marshal float tag into %v", v.Kind())
 
-		case reflect.Float64:
+		case reflect.Float32:
 			v.SetFloat((float64)(math.Float32frombits((uint32)(x))))
 
 		case reflect.Interface:
@@ -466,7 +463,7 @@ func (d *Decoder) unmarshalList(v reflect.Value, id byte, length int) error {
 func (d *Decoder) skip(id byte) error {
 	switch id {
 	default:
-		return fmt.Errorf("unknown tag id %v while skipping\n", id)
+		return fmt.Errorf("unknown tag id %v while skipping", id)
 
 	case tagByte, tagShort:
 		return d.dec.skip(int(id))

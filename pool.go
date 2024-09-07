@@ -21,6 +21,7 @@ func (b ServerBoundPool) Get(id int32) packet.Packet {
 }
 
 var serverBoundPlayPool = map[int32]func() packet.Packet{
+	0x00: func() packet.Packet { return &packet.TeleportConfirm{} },
 	0x03: func() packet.Packet { return &packet.MessageAcknowledgment{} },
 	0x04: func() packet.Packet { return &packet.ChatCommandServer{} },
 	0x05: func() packet.Packet { return &packet.ChatMessageServer{} },
