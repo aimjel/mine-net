@@ -1,3 +1,3 @@
-module github.com/aimjel/mine-net
+module github.com/aimjel/minecraft
 
 go 1.21.0
