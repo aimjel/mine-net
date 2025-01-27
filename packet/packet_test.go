@@ -2,10 +2,11 @@ package packet
 
 import (
 	"bytes"
-	"github.com/aimjel/minenet/protocol/encoding"
-	"github.com/aimjel/minenet/protocol/types"
 	"reflect"
 	"testing"
+
+	"github.com/aimjel/minenet/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/types"
 )
 
 var pk = TestPacket{
@@ -28,7 +29,7 @@ var pk = TestPacket{
 var buf bytes.Buffer
 
 func TestPacketEncode_Decode(t *testing.T) {
-	if err := pk.Encode(encoding.NewWriter(&buf)); err != nil {
+	if err := pk.Encode(encoding.NewWriter(&buf, false)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -54,7 +55,7 @@ func TestPacketEncode_Decode(t *testing.T) {
 }
 
 func BenchmarkPacket_Encode(b *testing.B) {
-	w := encoding.NewWriter(&buf)
+	w := encoding.NewWriter(&buf, false)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		pk.Encode(w)
@@ -66,7 +67,7 @@ func BenchmarkPacket_Encode(b *testing.B) {
 
 func TestPlayerInfoUpdate_Encode(t *testing.T) {
 	p := PlayerInfoUpdate{Actions: 63, Players: make([]types.PlayerInfo, 1)}
-	if err := p.Encode(encoding.NewWriter(&buf)); err != nil {
+	if err := p.Encode(encoding.NewWriter(&buf, false)); err != nil {
 		t.Fatal(err)
 	}
 }
