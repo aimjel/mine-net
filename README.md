@@ -7,7 +7,7 @@ TCP listener manages status and login states, complete with full encryption and 
 ## Installation
 
 ```sh
-go get github.com/aimjel/minecraft
+go get github.com/aimjel/minenet
 ```
 
 ### Simple server with PLAY ready connections
@@ -16,15 +16,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/aimjel/minecraft"
-	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minenet"
+	"github.com/aimjel/minenet/packet"
 )
 
 func main() {
-	lc := minecraft.ListenConfig{
+	lc := minenet.ListenConfig{
 		OnlineMode:           true,//enables server encryption
 		CompressionThreshold: 0, //compresses everything!
-		Status:               minecraft.NewStatus(minecraft.Version{Protocol: 763}, 10, "someone had todo it"),
+		Status:               minenet.NewStatus(minecraft.Version{Protocol: 763}, 10, "someone had todo it"),
 	}
 
 	l, err := lc.Listen("localhost:25565")
