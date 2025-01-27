@@ -3,7 +3,7 @@ package encoding
 import (
 	"errors"
 	"fmt"
-	"github.com/aimjel/minecraft/nbt"
+	"github.com/aimjel/minenet/nbt"
 	"io"
 	"math"
 	"unsafe"

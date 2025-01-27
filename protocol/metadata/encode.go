@@ -1,8 +1,8 @@
 package metadata
 
 import (
-	"github.com/aimjel/minecraft/chat"
-	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minenet/chat"
+	"github.com/aimjel/minenet/protocol/encoding"
 )
 
 func encode(w *encoding.Writer, t any) error {

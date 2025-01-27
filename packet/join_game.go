@@ -2,7 +2,7 @@ package packet
 
 import (
 	_ "embed"
-	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/encoding"
 )
 
 //go:embed internal/data/dimension.nbt

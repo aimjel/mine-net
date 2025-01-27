@@ -3,7 +3,7 @@ package encoding
 import (
 	"bytes"
 	"fmt"
-	"github.com/aimjel/minecraft/nbt"
+	"github.com/aimjel/minenet/nbt"
 	"math"
 )
 

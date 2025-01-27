@@ -1,8 +1,8 @@
 package packet
 
 import (
-	"github.com/aimjel/minecraft/protocol/encoding"
-	"github.com/aimjel/minecraft/protocol/types"
+	"github.com/aimjel/minenet/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/types"
 )
 
 type PlayerActionServer struct {

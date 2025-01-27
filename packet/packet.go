@@ -2,7 +2,7 @@ package packet
 
 import (
 	"errors"
-	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/encoding"
 )
 
 var NotImplemented = errors.New("a packet field has not been implemented")

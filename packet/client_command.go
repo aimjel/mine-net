@@ -1,6 +1,6 @@
 package packet
 
-import "github.com/aimjel/minecraft/protocol/encoding"
+import "github.com/aimjel/minenet/protocol/encoding"
 
 type ClientCommandServer struct {
 	ActionID int32

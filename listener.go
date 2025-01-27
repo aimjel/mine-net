@@ -1,4 +1,4 @@
-package minecraft
+package minenet
 
 import (
 	"bytes"
@@ -10,14 +10,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/aimjel/minecraft/protocol/types"
+	"github.com/aimjel/minenet/protocol/types"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 
-	"github.com/aimjel/minecraft/chat"
-	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minenet/chat"
+	"github.com/aimjel/minenet/packet"
 )
 
 type ListenConfig struct {

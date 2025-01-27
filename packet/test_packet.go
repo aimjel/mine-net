@@ -1,6 +1,6 @@
 package packet
 
-import "github.com/aimjel/minecraft/protocol/encoding"
+import "github.com/aimjel/minenet/protocol/encoding"
 
 // TestPacket is a packet which holds every possible
 // data type which can be received or sent to the client

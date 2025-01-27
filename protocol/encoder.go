@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/cipher"
-	"github.com/aimjel/minecraft/protocol/crypto"
+	"github.com/aimjel/minenet/protocol/crypto"
 )
 
 // Encoder writes packet payload with the header

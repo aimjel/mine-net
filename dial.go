@@ -1,9 +1,9 @@
-package minecraft
+package minenet
 
 import (
 	"fmt"
-	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minenet/packet"
+	"github.com/aimjel/minenet/protocol/encoding"
 	"net"
 	"strconv"
 )

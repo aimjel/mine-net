@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"fmt"
-	"github.com/aimjel/minecraft/protocol/crypto"
+	"github.com/aimjel/minenet/protocol/crypto"
 	"io"
 )
 

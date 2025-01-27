@@ -1,7 +1,7 @@
 package metadata
 
 import (
-	"github.com/aimjel/minecraft/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/encoding"
 	"math/bits"
 )
 

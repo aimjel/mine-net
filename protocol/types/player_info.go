@@ -1,6 +1,6 @@
 package types
 
-import "github.com/aimjel/minecraft/chat"
+import "github.com/aimjel/minenet/chat"
 
 type PlayerInfo struct {
 	UUID [16]byte

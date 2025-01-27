@@ -1,13 +1,13 @@
-package minecraft
+package minenet
 
 import (
 	"bytes"
 	"crypto/aes"
 	"fmt"
-	"github.com/aimjel/minecraft/packet"
-	"github.com/aimjel/minecraft/protocol"
-	"github.com/aimjel/minecraft/protocol/encoding"
-	"github.com/aimjel/minecraft/protocol/types"
+	"github.com/aimjel/minenet/packet"
+	"github.com/aimjel/minenet/protocol"
+	"github.com/aimjel/minenet/protocol/encoding"
+	"github.com/aimjel/minenet/protocol/types"
 	"net"
 	"sync"
 )

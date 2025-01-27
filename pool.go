@@ -1,7 +1,7 @@
-package minecraft
+package minenet
 
 import (
-	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minenet/packet"
 )
 
 type Pool interface {

@@ -1,16 +1,16 @@
-package minecraft
+package minenet
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aimjel/minecraft/packet"
+	"github.com/aimjel/minenet/packet"
 	"image/png"
 	"math"
 	"os"
 
-	"github.com/aimjel/minecraft/chat"
+	"github.com/aimjel/minenet/chat"
 )
 
 type Version struct {
